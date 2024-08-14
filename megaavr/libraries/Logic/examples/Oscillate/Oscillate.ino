@@ -472,7 +472,7 @@ void demo9b() {
   /* Divided Clocks: TCB0 - prescale it without dedicating the prescaler of a TCA to it!
    *
    * The type B timers are every AVR developers dream as utility timers. There are only two issues with them -
-   * the first being that they're awful for PWM (but you have TCAs for that) and they dont have an independent
+   * the first being that they're awful for PWM (but you have TCAs for that) and they don't have an independent
    * prescaler - they can either use a TCA prescaler, CLK_PER, or CLK_PER/2. Sometimes you really need to time
    * something that's a bit too long for CLK_PER/2, but you've got the TCA's way down at /64 or /256 for PWM
    * and you don't want to throw away all that accuracy. Or maybe you're writing a library, or code you expect
@@ -536,6 +536,7 @@ void demo9b() {
 
 }
 
+#ifdef TCD0
 void demo9d() {
   /* Using prescaled clocks 1: TCD0 pre-prescaler
    *
@@ -624,7 +625,9 @@ void demo9d() {
 
 }
 #endif
+#endif
 
+#ifdef TCD0
 void demo10() {
   /* Another route to scaled clocks on event channel: TCD+PLL+CCL
    *
@@ -687,6 +690,7 @@ void demo10() {
 
   Logic::start();                           // Start the CCL hardware
 }
+#endif
 
 void loop() {
   demo1(); // Async - timer feeding back on itself reaching mindboggling speeds.
@@ -699,6 +703,8 @@ void loop() {
   demo3();
   delay(20000);
   Serial.println("Async: out -> event -> second lut -> link - 33-37 MHz");
+  /* So, it seems like it proceeds at about 5ns per "layer" of asynchronous black magic. (remember, 1 cycle is 2 passes)
+   * Significant variation seen between parts, including speeds as low as 85 MHz and at least 120MHz */
   demo4();
   delay(20000);
   Serial.println("Clock dividing: Introducing synchronizer - 2 clocks/edge");

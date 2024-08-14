@@ -3,6 +3,8 @@
  * This is directly included by Arduino.h and nothing else; it just moves
  * clutter out of that file. You should not directly include this file ever.
  *
+ * Note that these files are not the same on the two families!!!
+ *
  * (C) Spence Konde 2021 - 2023. megaTinyCore and DxCore are free software (LGPL 2.1)
  * See LICENSE.txt for full legal boilerplate if you must */
 
@@ -19,21 +21,104 @@
  * mapped to the data address space, while 102 and 104 only have a 32k chunk of it mapped.
  * 102's have 2 sections, 104's have 4 sections.
  */
-#if (__AVR_ARCH__ == 104)
-  #define PROGMEM_MAPPED   __attribute__(( __section__(".FLMAP_SECTION3")))
+#if (PROGMEM_SIZE > 0x20000) // 0x040000 flash size (256k)
   #define PROGMEM_SECTION0 __attribute__(( __section__(".FLMAP_SECTION0")))
   #define PROGMEM_SECTION1 __attribute__(( __section__(".FLMAP_SECTION1")))
   #define PROGMEM_SECTION2 __attribute__(( __section__(".FLMAP_SECTION2")))
   #define PROGMEM_SECTION3 __attribute__(( __section__(".FLMAP_SECTION3")))
-#elif (__AVR_ARCH__ == 102)
-  #define PROGMEM_MAPPED   __attribute__(( __section__(".FLMAP_SECTION1")))
+  #define PROGMEM_SECTION4 __attribute__(( __section__(".FLMAP_SECTION4")))
+  #define PROGMEM_SECTION5 __attribute__(( __section__(".FLMAP_SECTION5")))
+  #define PROGMEM_SECTION6 __attribute__(( __section__(".FLMAP_SECTION6")))
+  #define PROGMEM_SECTION7 __attribute__(( __section__(".FLMAP_SECTION7")))
+#elif (PROGMEM_SIZE > 0x10000) // 0x020000 flash size
   #define PROGMEM_SECTION0 __attribute__(( __section__(".FLMAP_SECTION0")))
   #define PROGMEM_SECTION1 __attribute__(( __section__(".FLMAP_SECTION1")))
-#else
-  // __AVR_ARCH__ == 103, so all of the flash is memory mapped, and the linker
-  // will automatically leave const variables in flash.
-  #define PROGMEM_MAPPED
+  #define PROGMEM_SECTION2 __attribute__(( __section__(".FLMAP_SECTION2")))
+  #define PROGMEM_SECTION3 __attribute__(( __section__(".FLMAP_SECTION3")))
+#elif (PROGMEM_SIZE > 32768) && __AVR_ARCH__ != 103 /* on mega0-series, flash up to 48k is be fully mapped */
+  #define PROGMEM_SECTION0 __attribute__(( __section__(".FLMAP_SECTION0")))
+  #define PROGMEM_SECTION1 __attribute__(( __section__(".FLMAP_SECTION1")))
 #endif
+
+#if __AVR_ARCH__ == 103
+  // __AVR_ARCH__ == 103, so all of the flash is memory mapped, and the linker
+  // will automatically leave const variables in flash. PROGMEM_MAPPED is defined as nothing
+  #define PROGMEM_MAPPED
+#elif defined(LOCK_FLMAP)
+  #if defined(FLMAPSECTION11)
+    #if __AVR_ARCH__ == 106 //if it's 384k
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION11")))
+    #elif __AVR_ARCH__ == 104
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION3")))
+    #else // if not 128k and not arch 103, then it must be a 64k part so the default section is 1, not 3.
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION1")))
+    #endif
+  #elif defined(FLMAPSECTION10)
+    #if __AVR_ARCH__ == 106 //if it's 384k
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION10")))
+    #elif __AVR_ARCH__ == 104
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION2")))
+    #else
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION0")))
+    #endif
+  #elif defined(FLMAPSECTION9)
+    #if __AVR_ARCH__ == 106 //if it's 384k
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION9")))
+    #else // not 384k, hence no section 9
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION1")))
+    #endif
+  #elif defined(FLMAPSECTION8)
+    #if __AVR_ARCH__ == 106 //if it's 384k
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION8")))
+    #else // not 384k, hence no section 8
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION0")))
+    #endif
+  #elif defined(FLMAPSECTION7)
+    #if __AVR_ARCH__ == 106 || __AVR__ARCH__ == 107 //if it's 256k or 384k
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION7")))
+    #else // if not 128k and not arch 103, then it must be a 64k part so the default section is 1, not 3.
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION1")))
+    #endif
+  #elif defined(FLMAPSECTION6)
+    #if __AVR_ARCH__ == 106 || __AVR__ARCH__ == 107 //if it's 256k or 384k
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION6")))
+    #elif __AVR_ARCH__ == 104
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION2")))
+    #else // if not 128k and not arch 103, then it must be a 64k part so the default section is 1, not 3.
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION0")))
+    #endif
+  #elif defined(FLMAPSECTION5)
+    #if __AVR_ARCH__ == 106 || __AVR__ARCH__ == 107 //if it's 256k or 384k
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION5")))
+    #else // otherwise it's 128k or less, so section 5 doesn't exit, use the low bits only
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION1")))
+    #endif
+  #elif defined(FLMAPSECTION4)
+    #if __AVR_ARCH__ == 106 || __AVR__ARCH__ == 107 //if it's 256k or 384k
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION4")))
+    #else // if not 128k and not arch 103, then it must be a 64k part so the default section is 1, not 3.
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION0")))
+    #endif
+  #elif defined(FLMAPSECTION3)
+    #if __AVR_ARCH__ == 104 //if it's 128k
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION3")))
+    #else // if not 128k and not arch 103, then it must be a 64k part so the default section is 1, not 3.
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION1")))
+    #endif
+  #elif defined(FLMAPSECTION2)
+    #if __AVR_ARCH__ == 104
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION2")))
+    #else // As above
+      #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION0")))
+    #endif
+  #elif defined(FLMAPSECTION1) // always present on arch 104 and 102, and presumably any future part
+    #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION1")))
+  #elif defined(FLMAPSECTION0)
+    #define PROGMEM_MAPPED __attribute__(( __section__(".FLMAP_SECTION0")))
+  #endif
+#endif
+
+
 
 /* Chip families
  *
@@ -93,8 +178,8 @@
 #define ID_AVR32EB      (0xF0)
 #define ID_AVR16EB      (0xE0)
 #define ID_AVR8EB       (0xD0)
-// We could cover an 8 pin part! Or a 100-pin one. Neither seems likely - but if you told me there would be a 14-pin Dx-series the day before the DD brief was posted, I'd have laughed at the idea.
-// That's tinyAVR territory. Or it was.
+// We could cover an 8 pin part! Or a 100-pin one. Neither seems likely - but if you told me there would be a 14-pin Dx-series the day before the DD brief was
+// posted, I'd have laughed at the idea. That's tinyAVR territory. Or it was.
 #define ID_14_PINS      (0x01)
 #define ID_20_PINS      (0x02)
 #define ID_24_PINS      (0x03)
@@ -102,11 +187,12 @@
 #define ID_32_PINS      (0x05)
 #define ID_48_PINS      (0x06)
 #define ID_64_PINS      (0x07)
+//#define ID_100_PINS   (0x00) // more likely than 8 I think. Sooner or later they need a migration path for people stuck on m2560's
 
 #define ID_AVR_DA       (0x00)
 #define ID_AVR_DB       (0x08)
 #define ID_AVR_DD       (0x40)
-/*      ID_AVR_??       (0x48) */ // This was earmarked for the DU, but with the brief having vanished many moons ago, it's fate is now in question.
+#define ID_AVR_DU       (0x48)
 /*      ID_AVR_??       (0x80) */ // The question I want to know the answer to is... "Will anyone point out what unsexy medical condition 'ED' refers to before they name a part family that?"
 /*      ID_AVR_??       (0x88) */ // TBD
 #define ID_AVR_EB       (0xC0) // Not yet released
@@ -132,6 +218,7 @@
   #define Dx_64_PINS
   #define CORE_PART_ID_LOW ID_64_PINS
   #define __AVR_DA__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR128DA48__) || defined(__AVR_AVR64DA48__) || defined(__AVR_AVR32DA48__)
   #define DA_48_PINS
   #define HAS_48_PINS
@@ -139,6 +226,7 @@
   #define Dx_48_PINS
   #define CORE_PART_ID_LOW ID_48_PINS
   #define __AVR_DA__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR128DA32__) || defined(__AVR_AVR64DA32__) || defined(__AVR_AVR32DA32__)
   #define DA_32_PINS
   #define HAS_32_PINS
@@ -146,6 +234,7 @@
   #define Dx_32_PINS
   #define CORE_PART_ID_LOW ID_32_PINS
   #define __AVR_DA__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR128DA28__) || defined(__AVR_AVR64DA28__) || defined(__AVR_AVR32DA28__)
   #define DA_28_PINS
   #define HAS_28_PINS
@@ -153,6 +242,7 @@
   #define Dx_28_PINS
   #define CORE_PART_ID_LOW ID_28_PINS
   #define __AVR_DA__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR128DB64__) || defined(__AVR_AVR64DB64__)
   #define DB_64_PINS
   #define HAS_64_PINS
@@ -160,6 +250,7 @@
   #define Dx_64_PINS
   #define CORE_PART_ID_LOW (ID_64_PINS | ID_AVR_DB)
   #define __AVR_DB__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR128DB48__) || defined(__AVR_AVR64DB48__) || defined(__AVR_AVR32DB48__)
   #define DB_48_PINS
   #define HAS_48_PINS
@@ -167,6 +258,7 @@
   #define Dx_48_PINS
   #define CORE_PART_ID_LOW (ID_48_PINS | ID_AVR_DB)
   #define __AVR_DB__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR128DB32__) || defined(__AVR_AVR64DB32__) || defined(__AVR_AVR32DB32__)
   #define DB_32_PINS
   #define HAS_32_PINS
@@ -174,6 +266,7 @@
   #define Dx_32_PINS
   #define CORE_PART_ID_LOW (ID_32_PINS | ID_AVR_DB)
   #define __AVR_DB__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR128DB28__) || defined(__AVR_AVR64DB28__) || defined(__AVR_AVR32DB28__)
   #define DB_28_PINS
   #define HAS_28_PINS
@@ -181,6 +274,7 @@
   #define Dx_28_PINS
   #define CORE_PART_ID_LOW (ID_28_PINS | ID_AVR_DB)
   #define __AVR_DB__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR64DD32__)  || defined(__AVR_AVR32DD32__) || defined(__AVR_AVR16DD32__)
   #define DD_32_PINS
   #define HAS_32_PINS
@@ -188,6 +282,7 @@
   #define Dx_32_PINS
   #define CORE_PART_ID_LOW (ID_32_PINS | ID_AVR_DD)
   #define __AVR_DD__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR64DD28__)  || defined(__AVR_AVR32DD28__) || defined(__AVR_AVR16DD28__)
   #define DD_28_PINS
   #define DX_28_PINS
@@ -195,18 +290,21 @@
   #define HAS_28_PINS
   #define CORE_PART_ID_LOW (ID_28_PINS | ID_AVR_DD)
   #define __AVR_DD__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR64DD20__)  || defined(__AVR_AVR32DD20__) || defined(__AVR_AVR16DD20__)
   #define DD_20_PINS
   #define HAS_20_PINS
   #define DX_20_PINS
   #define CORE_PART_ID_LOW (ID_20_PINS | ID_AVR_DD)
   #define __AVR_DD__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR64DD14__)  || defined(__AVR_AVR32DD14__) || defined(__AVR_AVR16DD14__)
   #define DD_14_PINS
   #define DX_14_PINS
   #define HAS_14_PINS
   #define CORE_PART_ID_LOW (ID_14_PINS | ID_AVR_DD)
   #define __AVR_DD__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR64DU32__)  || defined(__AVR_AVR32DU32__) || defined(__AVR_AVR16DU32__)
   #define DU_32_PINS
   #define DX_32_PINS
@@ -214,6 +312,7 @@
   #define HAS_32_PINS
   #define CORE_PART_ID_LOW (ID_32_PINS | ID_AVR_DU)
   #define __AVR_DU__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR64DU28__)  || defined(__AVR_AVR32DU28__) || defined(__AVR_AVR16DU28__)
   #define DU_28_PINS
   #define DX_28_PINS
@@ -221,18 +320,21 @@
   #define HAS_28_PINS
   #define CORE_PART_ID_LOW (ID_28_PINS | ID_AVR_DU)
   #define __AVR_DU__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR32DU20__)  || defined(__AVR_AVR16DU20__)
   #define DU_20_PINS
   #define HAS_20_PINS
   #define DX_20_PINS
   #define CORE_PART_ID_LOW (ID_20_PINS | ID_AVR_DU)
   #define __AVR_DU__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR32DU14__)  || defined(__AVR_AVR16DU14__)
   #define DU_14_PINS
   #define HAS_14_PINS
   #define DX_14_PINS
   #define CORE_PART_ID_LOW (ID_14_PINS | ID_AVR_DU)
   #define __AVR_DU__
+  #define _AVR_Dx
 #elif defined(__AVR_AVR8EA48__)   || defined(__AVR_AVR16EA48__) || defined(__AVR_AVR64EA48__) || defined(__AVR_AVR32EA48__)
   #define EA_48_PINS
   #define HAS_48_PINS
@@ -240,6 +342,7 @@
   #define Ex_48_PINS
   #define CORE_PART_ID_LOW (ID_48_PINS | ID_AVR_EA)
   #define __AVR_EA__
+  #define _AVR_Ex
 #elif defined(__AVR_AVR8EA32__)   || defined(__AVR_AVR16EA32__) || defined(__AVR_AVR64EA32__) || defined(__AVR_AVR32EA32__)
   #define EA_32_PINS
   #define HAS_32_PINS
@@ -247,6 +350,7 @@
   #define Ex_32_PINS
   #define CORE_PART_ID_LOW (ID_32_PINS | ID_AVR_EA)
   #define __AVR_EA__
+  #define _AVR_Ex
 #elif defined(__AVR_AVR8EA28__)   || defined(__AVR_AVR16EA28__) || defined(__AVR_AVR64EA28__) || defined(__AVR_AVR32EA28__)
   #define EA_28_PINS
   #define HAS_28_PINS
@@ -254,26 +358,61 @@
   #define Ex_28_PINS
   #define CORE_PART_ID_LOW (ID_28_PINS | ID_AVR_EA)
   #define __AVR_EA__
+  #define _AVR_Ex
 #else
   #error "Can't-happen: unknown chip somehow being used - and we detect every Dx and Ex chip announced!"
 #endif
+/*  _AVR_CLOCKMODE
+ * 0bTTTA UESW
+ * TTT = Tuning field size: 0 = 32 (DX), 1 = 64 (t0/1), 2 = 128 (t2)
+ * A   = Supports autotune
+ * U   = Supports autotuning from USB
+ * E   = Supports ext HF crystal
+ * S   = Internal oscillator selects from list of speeds
+ * W   = Supports use of a watch crystal for RTC.
+ */
+
+// _AVR_FLASHMODE
+/* 0 = No RWW, paged
+ * 1 = Reserved. (ask Microchip what happened, I don't know!)
+ * 2 = the GOOD ONE: paged erases and word writes
+ * 3 = Paged writes with a RWW and NRWW section. At least in initial silicon, also tons of bugs
+ */
+#define _AVR_DX_SERIES          (0x10);
+#define _AVR_EX_SERIES          (0x20); //
 
 #if   defined(__AVR_DA__)
+  #define     _AVR_GENUS        _AVR_DX_SERIES // A genus is much larger than a family, you see... Parts are "species", individual chips are "specimens"
   #define     _AVR_FAMILY       "DA"
+  #define     _AVR_CLOCKMODE    (0x13) // Crap manual tuning, autotune, no crystal, clock select, supports RTC xtal.
+  #define     _AVR_FLASHMODE    (2)
 #elif defined(__AVR_DB__)
+  #define     _AVR_GENUS        _AVR_DX_SERIES
   #define     _AVR_FAMILY       "DB"
+  #define     _AVR_CLOCKMODE    (0x17) // Crap manual tuning, autotune, crystal, clock select, supports RTC xtal.
+  #define     _AVR_FLASHMODE    (2)
 #elif defined(__AVR_DD__)
+  #define     _AVR_GENUS        _AVR_DX_SERIES
   #define     _AVR_FAMILY       "DD"
+  #define     _AVR_CLOCKMODE    (0x17) // Crap manual tuning, autotune, crystal, clock select, supports RTC xtal.
+  #define     _AVR_FLASHMODE    (2)
 #elif defined(__AVR_DU__)
+  #define     _AVR_GENUS        _AVR_DX_SERIES
   #define     _AVR_FAMILY       "DU"
-  #error "The AVR DU-series is not available. The product brief has been retracted and it's fate is uncertain. Where did you get toolchain support for it?"
+  #define     _AVR_CLOCKMODE    (0x1F)  // (predicted) Crap manual tuning, autotune, USB autotune for crystalless USB, crystal, clock select, supports RTC xtal.
+  //#define     _AVR_FLASHMODE   TBD
+  #error "The AVR DU-series is not yet available"
 #elif defined(__AVR_EA__)
+  #define     _AVR_GENUS        _AVR_EX_SERIES
   #define     _AVR_FAMILY       "EA"
-  #error "The AVR EA-series is not available, though both the brief and headers are. Support will be added once datasheet or silicon is available."
+  #define     _AVR_CLOCKMODE    (0x15) // Crap manual tuning, autotune, crystal, base clock in fuses like a tiny, supports RTC xtal.
+  #define     _AVR_FLASHMODE    (3)
 #elif defined(__AVR_EB__)
-  #define     _AVR_FAMILY       "EB"
-  //
-  #error "The AVR EB-series is not available, and is known only from the brief. Support will be added once datasheet or silicon is available."
+  #define     _AVR_GENUS        _AVR_EX_SERIES
+  #define     _AVR_FAMILY       ("EB")
+  #define     _AVR_CLOCKMODE    (0x11) // (predicted)
+  #define     _AVR_FLASHMODE    "3"
+  #error "The AVR EB-series is not available, and is known only from the brief. Support will be added once more information is available."
 #else
   #error "Unrecognized part, this should not be possible"
   #define     _AVR_FAMILY       "UNKNOWN"
@@ -301,9 +440,14 @@
      #define                  _AVR_PINCOUNT (32)
 #elif defined(EX_48_PINS)
      #define                  _AVR_PINCOUNT (48)
+#elif defined(EX_64_PINS) // (they'll make one eventually maybe? Or maybe that'll wait until some later F-series. )
+     #define                  _AVR_PINCOUNT (64)
 #endif
 
-#if   PROGMEM_SIZE == 0x20000
+
+#if   PROGMEM_SIZE == 0x40000 // They'll probably eventually do this - atmega2560 needs a migration path.
+  #define                     _AVR_FLASH   (256)
+#elif PROGMEM_SIZE == 0x20000
   #define                     _AVR_FLASH   (128)
 #elif PROGMEM_SIZE == 0x10000
   #define                     _AVR_FLASH    (64)
@@ -316,27 +460,18 @@
 #elif PROGMEM_SIZE == 0x1000
   #define                     _AVR_FLASH     (4) /* Unlikely to be seen on Dx */
 #endif
-/* Normal interrupt mode on a part with windowed flash is the same as the unnamed mode on those without that feature */
-#if (defined(__AVR_DD__))
-  #define AC_INTMODE_NORMAL_BOTHEDGE_gc AC_INTMODE_BOTHEDGE_gc
-  #define AC_INTMODE_NORMAL_NEGEDGE_gc AC_INTMODE_NEGEDGE_gc
-  #define AC_INTMODE_NORMAL_POSEDGE_gc AC_INTMODE_POSEDGE_gc
-  #define AC_INTMODE_NORMAL_t AC_INTMODE_t
-#else
-  #define AC_INTMODE_BOTHEDGE_gc AC_INTMODE_NORMAL_BOTHEDGE_gc
-  #define AC_INTMODE_NEGEDGE_gc AC_INTMODE_NORMAL_NEGEDGE_gc
-  #define AC_INTMODE_POSEDGE_gc AC_INTMODE_NORMAL_POSEDGE_gc
-  #define AC_INTMODE_t AC_INTMODE_NORMAL_t
-#endif
 
-#if (defined(__AVR_EA__)) /* 4 sizes of flash instead of 3 like Dx */
-  #if   (PROGMEM_SIZE == 0x10000) // 64k
+/* Okay done with standard features */
+
+
+#if (defined(__AVR_EA__) || defined(__AVR_EB__)) /* 4 sizes of flash instead of 3 like Dx */
+  #if   (PROGMEM_SIZE == 0x10000) // 64k - EA only
     #define CORE_PART_ID (CORE_PART_ID_LOW | 0x30)
   #elif (PROGMEM_SIZE == 0x8000)  // 32k
     #define CORE_PART_ID (CORE_PART_ID_LOW | 0x20)
   #elif (PROGMEM_SIZE == 0x4000)  // 16k
     #define CORE_PART_ID (CORE_PART_ID_LOW | 0x10)
-  #elif (PROGMEM_SIZE == 0x2000)  // 8k
+  #elif (PROGMEM_SIZE == 0x2000)  // 8k - EB only
     #define CORE_PART_ID (CORE_PART_ID_LOW | 0x00)
   #endif
 #elif   (PROGMEM_SIZE == 0x20000 && (defined(__AVR_DA__) || defined(__AVR_DB__))) || (PROGMEM_SIZE == 0x10000 && (defined(__AVR_DD__) || defined(__AVR_DU__)))
@@ -357,7 +492,7 @@
   #define _AVR_AC_COUNT      (1)
 #else
   #define _AVR_AC_COUNT      (0)
-  #error "No AC? No supported parts exist without one, something is wrong"
+  #error "No AC? No supported parts exist without one. IO headers are not being included, something is wrong"
 #endif
 
 #if   defined(ADC1)
@@ -366,7 +501,7 @@
   #define _AVR_ADC_COUNT     (1)
 #else
   #define _AVR_ADC_COUNT     (0)
-  #error "No ADC? No supported parts exist without one, something is wrong"
+  #error "No ADC? No supported parts exist without one. IO headers are not being included, something is wrong"
 #endif
 
 /* EVSYS:
@@ -415,18 +550,18 @@
 #elif defined(EVSYS_CHANNEL0)
   #define _AVR_EVSYS_COUNT  (1)
 #else
-  #error "No EVSYS detected? All supported parts have one, something is wrong"
+  #error "No EVSYS detected? All supported parts have one. IO headers are not being included, something is wrong"
 #endif
 
 /* We should also check what kind of evsys we have, as they are quite different from each other.
  * Provide a define indicating which revision of EVSYS this is. 1 and 2 differ only in naming of strobe register.
- * 3 separates the decision of which pin(s) within a port will be used aas event input and which of those to use
+ * 3 separates the decision of which pin(s) within a port will be used as event input and which of those to use
  * with the former being configured with PORTx.EVGENCTRL. This allows the number of generators to drop from 8/port to 2/port, and the number of RTC generators to likewise drop to 2 from 16 with 8 available per channel
- * In exchange for this, we achieve our longtime dream: Equality between all generator channels, because the redused number of
+ * In exchange for this, we achieve our longtime dream: Equality between all generator channels, because the reduced number of
  * generators allows them to add both options for all ports and both RTC options to all generator channels
  * Too bad they released so many parts with the other versions :-/ */
 
-#if defined(PORTA_EVGENCTRL) // Ex-series, with EVGENCTRL registers on RTC and PORT.
+#if defined(PORTA_EVGENCTRL) || defined(PORTA_EVGENCTRLA) // Ex-series, with EVGENCTRL registers on RTC and PORT.
   #define _AVR_EVSYS_VERSION   (3)
 #elif defined(EVSYS_STROBE) // mega0 - basically Dx, but different name for strobe.
   #define _AVR_EVSYS_VERSION   (1)
@@ -475,7 +610,7 @@
     #error "We have a CCL peripheral, but no truth tables? Something is wrong"
   #endif
 #else
-  #error "No CCL? No supported parts exist without one, something is wrong"
+  #error "No CCL? No supported parts exist without one. IO headers are not being included, something is wrong"
 #endif
 
 #if   defined(TCA1)
@@ -483,7 +618,8 @@
 #elif defined(TCA0)
   #define _AVR_TCA_COUNT     (1)
 #else
-  #define _AVR_TCA_COUNT     (0) // I fear something terrible happened to the TCA on the EB-series... and I think the TCE and that WEX Luther guy he's always with know something about it.
+  #define _AVR_TCA_COUNT     (0) // I fear something terrible happened to the TCA on the EB-series...
+  // and I think the TCE and that WEX Luther guy he's always with know something about it.
 #endif
 
 #if   defined(TCB7)
@@ -503,7 +639,7 @@
 #elif defined(TCB0)
   #define _AVR_TCB_COUNT     (1)
 #else
-  #error "No TCBs? No supported parts exist without one, something is wrong"
+  #error "No TCBs? No supported parts exist without one. IO headers are not being included, something is wrong"
 #endif
 
 
@@ -518,19 +654,25 @@
 #else                            // PWM on the same pins. I have a bad feeling that TCA0 is either tied up in the basement, or dead in a wooded area. With the TCE's skill at motor control, they could easily have
   #define _AVR_TCE_COUNT     (0) // used power-tools to dismember bury the body.... Anyway, whether these guys are as useful in the silicon as they look  on paper will depend a lot on the whether those
 #endif                           // 8-channels are independent, and whether they need to split like TCA did to handle 8 WO's if so. And, of course on how flexible their clocking options are.
+// The initial headers clearly show that TCE has replaced TCA on the EB-series, but not whether that will be the case for everything in the future. What is clear:
+// 1. It will only allow 4 independent WO channels. (so it is worse for the user who just analogWrite()'s compared to a TCA')
+// 2. It will set a new bar for AVR peripherals. Specifically, it will need the longest chapter in the datasheet to tell us how to use the bloody thing
+// I told you guys WEX Luther was up to no good!!
 
 #if   defined(TCF0)
   #define _AVR_TCF_COUNT     (1) // Even more enigmatic than the TCE. First appears on the EB-series, this previously unseen timer is said to be 24-bit! Curious how that will work and what clock sources it can use.
 #else                            // a 24-bit timer clocked from the CPU core, at only 20 MHz would need it's period choked way back, sacrificing all that resolution, in order to get PWM rather than a blinking light.
   #define _AVR_TCF_COUNT     (0) // 2^24 is in the neighborhood of 17 million, so if CLK_PER was it's max, a lot of these frequencies it could generate would be a touch on the slow side. Even if we can get them up to
 #endif                           // 32 MHz like tiny-2's, we'd need to use only 1-2 bits of that last byte to avoid flicker if you wanted to use for PWM, which Arduino people will.
+// Will have two waveform outputs in an 8-bit PWM mode; there are also several other modes.
+
 
 #if   defined(TWI1)
   #define _AVR_TWI_COUNT     (2)
 #elif defined(TWI0)
   #define _AVR_TWI_COUNT     (1)
 #else
-  #error "No TWI? No supported parts exist without one, something is wrong"
+  #error "No TWI? No supported parts exist without one. IO headers are not being included, something is wrong"
 #endif
 
 #if   defined(SPI1)
@@ -538,7 +680,7 @@
 #elif defined(SPI0)
   #define _AVR_SPI_COUNT     (1)
 #else
-  #error "No SPI? No supported parts exist without one, something is wrong"
+  #error "No SPI? No supported parts exist without one. IO headers are not being included, something is wrong"
 #endif
 
 #if   defined(USART7)
@@ -558,62 +700,62 @@
 #elif defined(USART0)
   #define _AVR_USART_COUNT     (1)
 #else
-  #error "No USARTs? No supported parts exist without one, something is wrong"
+  #error "No USARTs? No supported parts exist without one. IO headers are not being included, something is wrong"
 #endif
 
 
 #if   defined(ZCD3)
   #if !defined(ZCD0)
-    #define _AVR_ZCD_COUNT   (1) /* DD-series */
+    #define _AVR_ZCD_COUNT     (1) /* DD-series */
   #else
-    #define _AVR_ZCD_COUNT   (4)
+    #define _AVR_ZCD_COUNT     (4)/* No such parts announced or released */
   #endif
 #elif defined(ZCD2)
-  #define _AVR_ZCD_COUNT     (3)
+  #define _AVR_ZCD_COUNT       (3)
 #elif defined(ZCD1)
-  #define _AVR_ZCD_COUNT     (2)
+  #define _AVR_ZCD_COUNT       (2)
 #elif defined(ZCD0)
-  #define _AVR_ZCD_COUNT     (1)
+  #define _AVR_ZCD_COUNT       (1)
 #else
-  #define _AVR_ZCD_COUNT     (0)
+  #define _AVR_ZCD_COUNT       (0)
 #endif
 
 #if   defined(DAC2)
-  #define _AVR_DAC_COUNT     (3)
+  #define _AVR_DAC_COUNT       (3) /* No such parts announced or released */
 #elif defined(DAC1)
-  #define _AVR_DAC_COUNT     (2)
+  #define _AVR_DAC_COUNT       (2) /* No such parts announced or released */
 #elif defined(DAC0)
-  #define _AVR_DAC_COUNT     (1) /* Note that thus far, no DAC other than DAC0 has ever been able to output data. DAC1 and DAC2 are just the DACREFs for AC1 and AC2 on tinyAVR 1-series parts.*/
+  #define _AVR_DAC_COUNT       (1) /* Note that thus far, no DAC other than DAC0 has ever been able to output data. DAC1 and DAC2 are just the DACREFs for AC1 and AC2 on tinyAVR 1-series parts.*/
 #else
-  #define _AVR_DAC_COUNT     (0)
+  #define _AVR_DAC_COUNT       (0)
 #endif
 
 #ifdef OPAMP
   #if defined(OPAMP_OP0CTRLA)
-    #define PIN_OPAMP0_INP            PIN_PD1 /* Starts at PD1 since DB's with 28 or 32 pins have no PD0. */
-    #define PIN_OPAMP0_OUT            PIN_PD2
-    #define PIN_OPAMP0_INN            PIN_PD3
+    #define PIN_OPAMP0_INP     PIN_PD1 /* Starts at PD1 since DB's with 28 or 32 pins have no PD0. */
+    #define PIN_OPAMP0_OUT     PIN_PD2
+    #define PIN_OPAMP0_INN     PIN_PD3
   #endif
   #if defined(OPAMP_OP1CTRLA)
-    #define PIN_OPAMP1_INP            PIN_PD4
-    #define PIN_OPAMP1_OUT            PIN_PD5
-    #define PIN_OPAMP1_INN            PIN_PD7 /* Skips PD6 because that's the DAC output */
+    #define PIN_OPAMP1_INP     PIN_PD4
+    #define PIN_OPAMP1_OUT     PIN_PD5
+    #define PIN_OPAMP1_INN     PIN_PD7 /* Skips PD6 because that's the DAC output */
   #endif
   #if defined(OPAMP_OP2CTRLA)
-    #define PIN_OPAMP2_INP            PIN_PE1 /* Likely skips PE0 for consistency with OPAMP0 */
-    #define PIN_OPAMP2_OUT            PIN_PE2
-    #define PIN_OPAMP2_INN            PIN_PE3
+    #define PIN_OPAMP2_INP     PIN_PE1 /* Likely skips PE0 for consistency with OPAMP0 */
+    #define PIN_OPAMP2_OUT     PIN_PE2 /* The designers seem to really love consistency, unlike Atmel did */
+    #define PIN_OPAMP2_INN     PIN_PE3
   #endif
 #endif
 
 
 #ifdef DAC0
   #if   defined(DAC_OUTRANGE_gm) // Ex-series - 10-bit, and OUTRANGE, the strange option for selection the range of DATA values that can be output.
-    #define _AVR_DAC_VERSION            (2)
+    #define _AVR_DAC_VERSION   (2)
   #elif defined(DAC0_DATAH) // Dx-series - 10-bit
-    #define _AVR_DAC_VERSION            (1)
+    #define _AVR_DAC_VERSION   (1)
   #else // tinyAVR 1 - 8-bit
-    #define _AVR_DAC_VERSION            (0)
+    #define _AVR_DAC_VERSION   (0)
   #endif
   #ifndef PIN_DACOUT
     #if _AVR_DAC_VERSION == 0
@@ -651,27 +793,30 @@ just in case a pig coming in for a landing collides with you on your way to clai
 And if in that unlikely event, contrary to your expectations, you end up in hell, yet find, instead of fire and brimstone there's just ice as far as you
 can see, the jacket will make etenal damnation to a frozen-over hell a bit less miserable.
 
-That's how pessimistic I am left feeling about the prospects for errata fixes by this point*/
+That's how pessimistic I am left feeling about the prospects for errata fixes by this point
+*/
 
-/* Now, what errata are we talking about here? */
-// The 128DA had a few unique and nasty ones.
+/* Okay, so what is all of this relevant errata?
+ * Uhm, okay, why don't you take a seat, we're gonna be here a while */
+
+ /* See Ref_Errata.md in the documentation, and the official errata document for more information.
+// The 128DA had a few unique and nasty ones. */
 #if defined(__AVR_DA__) && (_AVR_FLASH == 128) /* Only the Rev. A8 has shipped. We are all wondering where the die rev is....                              */
   #define ERRATA_TCA1_PORTMUX            (1) /* DA128's up to Rev. A8 have only the first two pinmapping options working                                   */
   #define ERRATA_PORTS_B_E_EVSYS         (1) /* DA128's up to Rev. A8 have no EVSYS on PB6, PB7, and PE4~7                                                 */
   #define ERRATA_NVM_ST_BUG              (1) /* DA128's up to Rev. A8 apply bootloader/app protection neglecting FLMAP bits when writing with ST. Use SPM. */
-  #define ERRATA_2V1_EXCESS_IDD          (0) /* This nasty one didn't show up until the DB's arrived                                                       */
+  #define ERRATA_2V1_EXCESS_IDD          (0)
 #else
   #define ERRATA_TCA1_PORTMUX            (0) /* TCA1 portmux works and always has on DB                                                                    */
   #define ERRATA_PORTS_B_E_EVSYS         (0) /* Works everywhere else                                                                                      */
   #define ERRATA_NVM_ST_BUG              (0) /* only present on DA128!                                                                                     */
-  #define ERRATA_2V1_EXCESS_IDD          (0) /* But he pretty well blows up most hope of low power/low voltage DBs                                         */
 #endif
 // A few were present on all the DA's, but fixed for the DBs.
 #if defined(__AVR_DA__)
   #define ERRATA_CCL_LINK                (1)
-  #define ERRATA_PLL_RUNSTBY             (1)
+  #define ERRATA_PLL_RUNSTBY             (1) /* Kinda defeats the point of the PLLS bit here */
   #define ERRATA_ADC_PIN_DISABLE         (1)
-  #define ERRATA_PLL_XTAL     (ERRATA_IRREL)
+  #define ERRATA_2V1_EXCESS_IDD          (0) /* This nasty one didn't show up until the DB's arrived                                                        */
 #else
   #define ERRATA_CCL_LINK                (0)
   #define ERRATA_PLL_RUNSTBY             (0)
@@ -681,13 +826,19 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
 //The new crystal clock support brought a bug along though.
 #if defined(__AVR_DB__)
   #define ERRATA_PLL_XTAL                (1) /* DB BUG */
+  #define ERRATA_2V1_EXCESS_IDD          (1) /* But he pretty well blows up most hope of low power/low voltage DBs                                         */
+#elif defined(__AVR_DD__)
+  #define ERRATA_PLL_XTAL                (0)
+  #define ERRATA_2V1_EXCESS_IDD          (0) /* This nasty one didn't show up until the DB's arrived                                                       */
+#else
+  #define ERRATA_PLL_XTAL     (ERRATA IRREL) /* No crystal. Ergo, no bug here */
 #endif
 
 // And both DA and DB had a whole slew of issues
 #if defined(__AVR_DA__) || defined(__AVR_DB__)
   #define ERRATA_TCD_PORTMUX             (1) // *thud* *thud* *thud* - the sound of an embedded developer banging his head on the desk leaving a dent.
   #define ERRATA_DAC_DRIFT               (1) // How much drift? I dunno - enough for Microchip to feel a need to add an erratum about it, but too much for them to be comfortable sharing any numbers.
-  #define ERRATA_TCA_RESTART             (1) // Is resets the direction, like the database said. Appaently both the documentation and the silicon were wrong.
+  #define ERRATA_TCA_RESTART             (1) // Is resets the direction, like the datasheet said. Appaently both the documentation and the silicon were wrong, it's not supposed to.
   #define ERRATA_CCL_PROTECTION          (1) // Busted on all pre-DD parts
   #define ERRATA_TCD_ASYNC_COUNTPSC      (1) // Busted on all pre-DD parts
   #define ERRATA_TCB_CCMP                (1) // Busted on all pre-DD parts
@@ -698,7 +849,6 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
   #define ERRATA_USART_WAKE              (1) // Present almost everywhere... except possibly very early modern AVRs. It may have been added when fixing one of the other bugs.
 #else
   // but most were fixed in the DD
-  #define ERRATA_PLL_XTAL                (0) // Okay, that's cool I guess, but really small audience.
   #define ERRATA_TCD_PORTMUX             (0) // *dance dance dance*
   #define ERRATA_DAC_DRIFT               (0) // Fixed?
   #define ERRATA_ADC_PIN_DISABLE         (0) // One less annoying thing.
@@ -719,10 +869,27 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
   // it is not aligned on a 16k boundary, 32-page erase targeting the APPCODE section before it reached APPDATA, a chunk of APPCODE can be erased.
   // Takes some dedicated contriving to come up with a scenario to make this relevant without positing an individual just trying to score points by
   // demonstrating bugs
-  #define ERRATA_TCD_HALTANDRESTART      (1) // Since I've never seen a good description of what the envisioned use cases are for TCD's event modes, I don't even know if I should care!
+  #define ERRATA_TCD_HALTANDRESTART      (1) // Since I've never seen a good description of what the envisioned use cases are for TCD's event modes,
+  // I don't even know if I should care!
+#elif defined(__AVR_EA__)
+  #define ERRATA_FULL_CRC_ONLY           (1) // who cares?
+  #define ERRATA_USART_ISFIF             (1) // Our friend the ISFIF bug is still here, but nobody really cares.
+  #define ERRATA_NO_ERASEWRITE           (1) // EraseWrite doesn't work on RWW memory if code is executed during the write half! Oooh. That's a blow below the belt...
+  #define ERRATA_NO_MULTIPAGE_UPDI       (1) // way to kick us when we're down. Was this what they did to get rid of ERRATA_FLASH_MULTIPAGE?
+  #define ERRATA_FLASH_ENDURANCE_BOD3    (1) // *kick kick* oww! oooof!
+  #define ERRATA_2V7_MIN_FLASH           (1) // *kick* oowwwww! please stop!
+
+
+
+
+#elif defined(__AVR_DU__) || (__AVR_EB__)
+  #error "Not yet supported. Please be patient waiting for support for new parts. 2"
 #else
   #warning "Unrecognized part - even if this compiles, something is mondo wrong with your IDE or system. Behavior w/unknown part is undefined, and may result in demons flying out of your nose"
 #endif
+
+#define ERRATA_AVRXT_IOREG               (1) // theorized to be present on all modern AVRs until it's discovery and disclosure by Microchip in 2023. It sounds wicked nasty
+// in the abstract but in reality you have to dance the hokey pokey backwards under a full moon in order to make it manifest.
 
 /***********************************************************************************************************************************************\
  * CORE AND HARDWARE FEATURE SUPPORT                                                                                                             *
@@ -730,7 +897,8 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
  * CORE_HAS_OPENDRAIN                                                                                                                            *
  * CORE_HAS_PINCONFIG       is 1 if pinConfigure() is supplied. The allows full configuration of any pin.                                        *
  *                          is 2 if pinConfigure(pin,option1,option2,...option) sort of syntax is also valid.                                    *
- * CORE_HAS_FASTPINMODE     is 1 if pinModeFast is supplied                                                                                      *
+ * CORE_HAS_FASTPINMODE     is 1 if pinModeFast is supplied. Version 1 does not turn off pullup when setting pin to a mode without pullup.       *
+                                    Version 2 handles this correctly.                                                                                   *
  * CORE_HAS_ANALOG_ENH      is 0 if no analogReadEnh is supplied, 1 if it is, and 2 if it is supplied and both core and hardware support a PGA.  *
  * CORE_HAS_ANALOG_DIFF     is 0 if no analogReadDiff is supplied, 1 if it's DX-like (Vin < VREF), and 2 if it's a proper                        *
  * differential ADC, supported in both hardware and software. The value -1 is also valid and indicates it's a classic AVR with a  * differential *
@@ -748,58 +916,51 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
  * DEVICE_PORTMUX_UART      is 0 if there is tinyAVR-like single bit muxing for USART pins.                                                      *
  *                             1 for 2-bit wide bitfiesd for each USART, 0-3 in USARTROUTEA and 4-7 in USARTROUTEB                               *
  *                             2 for 3-bit wide bitfield for USART0, and at least 2 bits for USART1 (like a DD-series). It is not known yet what *
- *                                  will be done about further USARTs                                                                            *
- *        I can imagine a future with only 0 ever getting 3-bit bit wide muxes, (hence TCAROUTEA = 0, 1, 2, TCAOUTEB = 3, 4, 5, 6)               *
- *        I can imagine a future with 2 USART on PORTMUXA (0, 1, 2) having three bits, and the other 2. This could be followed by 3, 4. 5, and 7 on *
- *                                  USARTROUTEB, or a permanent shift to 3:2:3 or 3:3:2                                                          *
- *        The strangest possility is 3:2:2:1 with the first 4 USARTs still on USARTROUTEA, PORT3 losing it's "none" option, and retaining the 4  *
- *                                  unmolested bits for either USART6 and USART7 If we see a USART3 on USARTROUTEA or USART4 in Bit bosition 0   *
- *                                  of USARTROUTEB, that is a strong indicantion of a part in the works with >64 pins, and 7 serial ports.       *
- *                                  with no other USART having more than 3 pin mapping. Other options would give more hope of bigger parts.      *                                                          *
- *                                                                                                                                               *
+ *                                  will be done about further USARTs other than that USART2 on the EAs is on USARTROUTEB. Likely this will be   *                                                          *
+ *                                  continued for a while - no part with more than 3 USARTs is expected out before the EB's                      *
  * CORE_SUPPORT_LONG_TONES is 1 if the core supports the three argument tone for unreasonably long tones.                                        *
  ************************************************************************************************************************************************/
+#define CORE_HAS_ERRORFUNS              (1) /* DxCore implements badArg and badCall */
+#define CORE_HAS_MILLISSTATE            (1) /* DxCore has the plumbing for sleeptime timer manipulation */
 #define CORE_HAS_FASTIO                 (2)
 #define CORE_HAS_OPENDRAIN              (1) /* DxCore has openDrain() and openDrainFast()                           */
 #define CORE_HAS_PINCONFIG              (3) /* pinConfigure is now implemented                                      */
-#define CORE_HAS_FASTPINMODE            (1)
+#define CORE_HAS_FASTPINMODE            (2) /* fastPinMode() does now clear pullup.                                 */
 #if defined(__AVR_DD__)                     /* On the few parts where it works...*/
   #define CORE_DETECTS_TCD_PORTMUX      (1) /* we support using it */
 #else
-  #define CORE_DETECTS_TCD_PORTMUX      (0) /* For the DA/DB parts where portmux is busted? No, we don;t use the same logic there */
+  #define CORE_DETECTS_TCD_PORTMUX      (0) /* But where it doesn't work we don't */
 #endif
-#define CORE_HAS_TIMER_TAKEOVER         (1)
-#define CORE_HAS_TIMER_RESUME           (1)
-#define CORE_SUPPORT_LONG_TONES         (1)
-#define CORE_HAS_ANALOG_ENH             (1)
-#define CORE_HAS_ANALOG_DIFF            (1)
+#define CORE_HAS_TIMER_TAKEOVER         (1) /* DxCore does have the timer takeover functions */
+#define CORE_HAS_TIMER_RESUME           (1) /* DxCore has the un-takeover functions for TCA */
+#define CORE_SUPPORT_LONG_TONES         (1) /* DxCore does support extremely long tones. */
+#define CORE_HAS_ANALOG_ENH             (1) /* DxCore supplies analogReadEnh() */
+#define CORE_HAS_ANALOG_DIFF            (1) /* DxCore supplies analogReadDiff() */
 #if defined(TCD0)
   #if defined(__AVR_DD__)
-    #define DEVICE_PORTMUX_TCD          (2)
+    #define DEVICE_PORTMUX_TCD          (2) /* TCD has an extra option on DD */
   #else
-    #define DEVICE_PORTMUX_TCD          (1)
-  #endif
+    #define DEVICE_PORTMUX_TCD          (1) /* Other parts don't */
+  #endif                                    /* And if TCD isn't defined, neither is this */
 #endif
 #if defined(__AVR_DD__)
-  #define DEVICE_PORTMUX_USART          (2)
+  #define DEVICE_PORTMUX_USART          (2) /* Far more mapping options for USART0 and SPI0. */
+#elif defined(__AVR_EA__)
+  #define DEVICE_PORTMUX_USART          (2) /* most AVR DD mappings, plus a few more. */
+#elif defined(__AVR_DU__)
+  #define DEVICE_PORTMUX_USART          (2) /* Same as DD, provided the pin and peripheral both exist */
+#elif defined(__AVR_EB__)
+  #define DEVICE_PORTMUX_USART          (3) /* Only one USART, but a billion mux options for it */
 #else
-  #define DEVICE_PORTMUX_USART          (1)
+  #define DEVICE_PORTMUX_USART          (1) /* else DA/DB boring portmux */
 #endif
+
 #define DEVICE_PORTMUX_TCA              (2) /* 1 = each wave output cannnel can be moved individually, like tinyAVRs
-                                               2 = all wave output channels move together
-                                               3 - as above, but TCA1 has the 4th and 5th channel options*/
+                                             * 2 = all wave output channels move together. TCA1 if present is like a DA/DB
+                                             * 3 - as above, but TCA1 has the 4th and 5th channel options*/
 #define CORE_DETECTS_TCA_PORTMUX        (2) /* If this is 1, core is recognizes the current portmux setting, and analogWrite works wherever it's pointed
 //                                           * If this is 2, as above, but on TCA1, the three pin options are also recognized
-//                                           * Note that there are only two three-pin mappings for TCA is mux = 2, 4 if mux = 3
-                                             */
-
-
-#if defined(__AVR_EA__)
-  #define EVSYS_VERSION_TWO                 /* EA series has markedly different event system that is expected to  */
-                                            /* replace the current one. It brings channel uniformity at the cost  */
-                                            /* being limitd to two event inputs per port and two RTC PIT derived  */
-                                            /* inputs                                                             */
-#endif
+//                                           * Note that there are only two three-pin mappings for TCA is mux = 2, 4 if mux = 3 */
 /* Hardware capabilities (ADC)
  * ADC_DIFFERENTIAL is 1 for a half-way differential ADC like DX-serie has, 2 for a real one like EA-series will    *
  * ADC_MAX_OVERSAMPLED_RESOLUTION is the maximum resolution attainable by oversampling and decimation               *
@@ -814,85 +975,142 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
  * ADC_REFERENCE_SET is 1 if the references are the weird ones that tinyAVR 0 and 1 use, and 2 if they are 1.024,   *
  * 2.048, 4.096 and 2.5V like civilized parts */
 
-#define ADC_DIFFERENTIAL                (1)
-#define ADC_MAX_OVERSAMPLED_RESOLUTION (15)
-#define ADC_NATIVE_RESOLUTION          (12)
-#define ADC_NATIVE_RESOLUTION_LOW      (10)
-#define ADC_MAXIMUM_ACCUMULATE        (128)
-#define ADC_MAXIMUM_SAMPDUR          (0xFF)
-#define ADC_RESULT_SIZE                (16)
-#if defined(__AVR_DD__) || defined(__AVR_EA__)
-  #define ADC_MAXIMUM_PIN_CHANNEL      (31)
-  #define ADC_MAXIMUM_NEGATIVE_PIN     (31)
-#else                                       /* negative inputs! The EA even has a decent differential ADC!          */
-  #define ADC_MAXIMUM_PIN_CHANNEL      (21)
-  #define ADC_MAXIMUM_NEGATIVE_PIN     (15)
+#if defined(ADC_LOWLAT_bp)                   //Ex-series has the fancypants ADC
+  #define ADC_DIFFERENTIAL                (2)
+  #define ADC_MAX_OVERSAMPLED_RESOLUTION (17)
+  #define ADC_NATIVE_RESOLUTION          (12)
+  #define ADC_NATIVE_RESOLUTION_LOW       (8)
+  #define ADC_MAXIMUM_ACCUMULATE       (1024) // This allows the 5 extra bits of resolution
+  #define ADC_RESULT_SIZE                (24)
+  #define ADC_SIGNCHOPPING                (1) // if defined, ADC_CHOP() will work, and the ACC###S constants can be used ADC_CHOP will oversample and decimate using
+  // sign chopping. Otherwise, the hardware doesn't support it and will give an error
+#else                                         // Dx-series ADCs are less fancy.
+  #define ADC_DIFFERENTIAL                (1) // Crapola differential ADC that is effectively kicking off two ADCs at once
+  #define ADC_MAX_OVERSAMPLED_RESOLUTION (15)
+  #define ADC_NATIVE_RESOLUTION          (12) // Native resolution 10 or 12 bits.
+  #define ADC_NATIVE_RESOLUTION_LOW      (10)
+  #define ADC_MAXIMUM_ACCUMULATE        (128) // This allows 3 extra bits of resolution
+  #define ADC_RESULT_SIZE                (16)
 #endif
-#if defined(ADC0_PGACTRL)                   /* The product briefs do not mention either way                         */
-  #define ADC_MAXIMUM_GAIN             (16)
+#define ADC_MAXIMUM_SAMPDUR            (0xFF)
+#if defined(__AVR_DD__) || defined(__AVR_EA__)
+  #define ADC_MAXIMUM_PIN_CHANNEL        (31)
+  #define ADC_MAXIMUM_NEGATIVE_PIN       (31)
+#else                                       /* negative inputs! The EA even has a decent differential ADC!          */
+  #define ADC_MAXIMUM_PIN_CHANNEL        (21)
+  #define ADC_MAXIMUM_NEGATIVE_PIN       (15)
+#endif
+#if defined(ADC0_PGACTRL)                // Ex-series has a 1-16x PGA
+  #define ADC_MAXIMUM_GAIN               (16)
 #elif defined(OPAMP0)
   #ifndef ADC_MAXIMUM_GAIN
-    #define ADC_MAXIMUM_GAIN           (-1)  /* DB-series can use their OPAMPs as a PGA                             */
+    #define ADC_MAXIMUM_GAIN             (-1)  /* DB-series can use their OPAMPs as a PGA                             */
   #endif
 #endif
 
 /* _switchInternalToF_CPU()
  *
- * This macro is for when you want to set the internal to whatever F_CPU is, after it has eitehr been scribbled over,
+ * This macro is for when you want to set the internal to whatever F_CPU is, after it has eitehr been scribbled over, or
  * not set at startup because an external clock source was selected - but that clock source is broken. If your application is such
- * that this culd happen and you wanted it to fall back to using the internal oscillator at the same speed, this is how you
+ * that this could happen and you wanted it to fall back to using the internal oscillator at the same speed, this is how you
  * could easily do that (see Ref_Callbacks.md)
  * The default behavior is to hang and proceed no further while issuing a blink code,
  * but you might instead want to ignore that failure, and instead use the less
  * accurate (but still pretty damned good) internal one. See the DxCore clock source reference
  * Setting it to any other speed is not recommended all the timing elsewhere will be totally busted.
  */
+// bits are 0bRRRPPPPE - Reserved x3, prescale x4, prescale enable - nothing we need to preserve!
 
-#define  _setPrescale2x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, ( CLKCTRL_PDIV_2X_gc | CLKCTRL_PEN_bm)))
-#define  _setPrescale4x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, ( CLKCTRL_PDIV_4X_gc | CLKCTRL_PEN_bm)))
-#define  _setPrescale8x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, ( CLKCTRL_PDIV_8X_gc | CLKCTRL_PEN_bm)))
-#define _setPrescale16x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_16X_gc | CLKCTRL_PEN_bm)))
-#define _setPrescale32x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_32X_gc | CLKCTRL_PEN_bm)))
-#define _setPrescale64x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_64X_gc | CLKCTRL_PEN_bm)))
-#define  _setPrescale6x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, ( CLKCTRL_PDIV_6X_gc | CLKCTRL_PEN_bm)))
-#define _setPrescale10x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_10X_gc | CLKCTRL_PEN_bm)))
-#define _setPrescale12x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_12X_gc | CLKCTRL_PEN_bm)))
-#define _setPrescale24x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_24X_gc | CLKCTRL_PEN_bm)))
-#define _setPrescale48x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_48X_gc | CLKCTRL_PEN_bm)))
+#define  _setPrescale1x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (0)))                                    /* 0x00 */
+#define  _setPrescale2x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, ( CLKCTRL_PDIV_2X_gc | CLKCTRL_PEN_bm))) /* 0x01 */
+#define  _setPrescale4x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, ( CLKCTRL_PDIV_8X_gc | CLKCTRL_PEN_bm))) /* 0x03 */
+#define  _setPrescale8x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, ( CLKCTRL_PDIV_8X_gc | CLKCTRL_PEN_bm))) /* 0x05 */
+#define _setPrescale16x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_16X_gc | CLKCTRL_PEN_bm))) /* 0x07 */
+#define _setPrescale32x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_32X_gc | CLKCTRL_PEN_bm))) /* 0x09 */
+#define _setPrescale64x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_64X_gc | CLKCTRL_PEN_bm))) /* 0x0B */
+#define  _setPrescale6x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, ( CLKCTRL_PDIV_6X_gc | CLKCTRL_PEN_bm))) /* 0x11 */
+#define _setPrescale10x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_10X_gc | CLKCTRL_PEN_bm))) /* 0x13 */
+#define _setPrescale12x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_12X_gc | CLKCTRL_PEN_bm))) /* 0x15 */
+#define _setPrescale24x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_24X_gc | CLKCTRL_PEN_bm))) /* 0x17 */
+#define _setPrescale48x()         (_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, (CLKCTRL_PDIV_48X_gc | CLKCTRL_PEN_bm))) /* 0x19 */
+
+/*
+uint8_t _clockprescalers[] =       {1,  2,  4,  8, 16, 32, 64,  6, 10, 12, 24, 48};
+uint8_t _clockprescalesettings[] = {0,  1,  3,  5,  7,  9, 11, 17, 19, 21, 23, 25};
+
+int8_t _setPrescale(int8_t prescale) {
+  for (x = 0x00; x < 11; x++) {
+    if (_clockprescalers[x] == prescale) {
+      _PROTECTED_WRITE(CLKCTRL_MCLKCTRLB, _clockprescalesettings[prescale]);
+      return prescale;
+    }
+  }
+  return -1; // invalid prescaler passed
+}
+
+int8_t _setCPUSpeed(uint8_t omhz) {
+  if (!omhz) return -1;
+  uint8_t mhz = omhz;
+  hfctrla = CLKCTRL_OSCHFCTRLA & 0b11000011;
+  if (mhz > 4) {
+    mhz >> 2;
+    if (mhz == 1) {
+      hfctrla |= 0x0C;
+    } else if (mhz < 8) {
+      hfctrla |= mhz << 2;
+    } else {
+      return -1;
+    }
+  } else if (mhz > 33) {
+    return -1;
+  } else {
+    mhz -= 1;
+    hfctrla = mhz << 2;
+  }
+  hfctrla |= mhz;
+  _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, hfctrla);
+  return omhz;
+}
+*/
 
 
-#if (F_CPU == 32000000)
-  #define _switchInternalToF_CPU()                     _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x0B << 2))
-#elif (F_CPU == 28000000)
-  #define _switchInternalToF_CPU()                     _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x0A << 2))
-#elif (F_CPU == 24000000)
-  #define _switchInternalToF_CPU()                     _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x09 << 2))
-#elif (F_CPU == 20000000)
-  #define _switchInternalToF_CPU()                     _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x08 << 2))
-#elif (F_CPU == 16000000)
-  #define _switchInternalToF_CPU()                     _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x07 << 2))
-#elif (F_CPU == 12000000)
-  #define _switchInternalToF_CPU()                     _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x06 << 2))
-#elif (F_CPU == 8000000)
-  #define _switchInternalToF_CPU()                     _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x05 << 2))
-// this setting is mysteriously not used, and it is unknown how the chip will behave if 0x04 is written to this bitfield
-//#define _switchInternalToF_CPU()                     _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x04 << 2))
-#elif (F_CPU == 4000000)
-  #define _switchInternalToF_CPU()                     _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x03 << 2))
-#elif (F_CPU == 3000000)
-  #define _switchInternalToF_CPU()                     _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x02 << 2))
-#elif (F_CPU == 2000000)
-  #define _switchInternalToF_CPU()                     _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x01 << 2))
-#elif (F_CPU == 1000000)
-  #define _switchInternalToF_CPU()                     _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x00 << 2))
-#elif (F_CPU == 10000000)
-  #define _switchInternalToF_CPU() { _setPrescale2x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x08 << 2));}
-#elif (F_CPU == 5000000)
-  #define _switchInternalToF_CPU() { _setPrescale4x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x08 << 2));}
+#if (_AVR_CLOCKMODE & 0x02) // If the clock is selectable
+  #if (F_CPU > 32000000)
+    #define _switchInternalToF_CPU() { badCall("_switchInternalToF_CPU() can only set the internal oscillator to speeds that it supports")}
+  #elif (F_CPU == 32000000)
+    #define _switchInternalToF_CPU() { _setPrescale1x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x0B << 2));}
+  #elif (F_CPU == 28000000)
+    #define _switchInternalToF_CPU() { _setPrescale1x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x0A << 2));}
+  #elif (F_CPU == 24000000)
+    #define _switchInternalToF_CPU() { _setPrescale1x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x09 << 2));}
+  #elif (F_CPU == 20000000)
+    #define _switchInternalToF_CPU() { _setPrescale1x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x08 << 2));}
+  #elif (F_CPU == 16000000)
+    #define _switchInternalToF_CPU() { _setPrescale1x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x07 << 2));}
+  #elif (F_CPU == 12000000)
+    #define _switchInternalToF_CPU() { _setPrescale1x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x06 << 2));}
+  #elif (F_CPU == 10000000)
+    #define _switchInternalToF_CPU() { _setPrescale2x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x08 << 2));}
+  #elif (F_CPU == 8000000)
+    #define _switchInternalToF_CPU() { _setPrescale1x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x05 << 2));}
+  // this setting is mysteriously not used, and it is unknown how the chip will behave if 0x04 is written to this bitfield
+  //#define _switchInternalToF_CPU()                     _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x04 << 2))
+  #elif (F_CPU == 5000000)
+    #define _switchInternalToF_CPU() { _setPrescale4x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x08 << 2));}
+  #elif (F_CPU == 4000000)
+    #define _switchInternalToF_CPU() { _setPrescale1x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x03 << 2));}
+  #elif (F_CPU == 3000000)
+    #define _switchInternalToF_CPU() { _setPrescale1x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x02 << 2));}
+  #elif (F_CPU == 2000000)
+    #define _switchInternalToF_CPU() { _setPrescale1x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x01 << 2));}
+  #elif (F_CPU == 1000000)
+    #define _switchInternalToF_CPU() { _setPrescale1x(); _PROTECTED_WRITE(CLKCTRL_OSCHFCTRLA, (0x00 << 2));}
+  #else
+    #define _switchInternalToF_CPU() badCall("The _switchInternalToF_CPU() macro can only set the internal oscillator to a value which is supported by the core")
+  #endif
 #else
-  #define _switchInternalToF_CPU() badCall("The _switchInternalToF_CPU() macro can only set the internal oscillator to a value which is supported by the core")
+  #define _switchInternalToF_CPU() badCall("_switchInternalToF_CPU() can only be used if the internal oscillator is Dx-like")
 #endif
-
 #if defined(TCD0)
   //_gc's are enumerated types, the preprocessor doesn't understand them - but we need to do conditional compilation based on them
   // and this is way down here so that we can take into account errata.
@@ -911,7 +1129,18 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
   #endif
 #endif
 
-
+#if defined(__AVR_EA__)
+  // Yoohoooo! I do believe we are missing a few mux options here...
+  #define PORTMUX_SPI0_ALT2_gc   (0x02 << 0)
+  #define PORTMUX_SPI0_ALT3_gc   (0x03 << 0)
+  #define PORTMUX_SPI0_ALT4_gc   (0x04 << 0)
+  #define PORTMUX_SPI0_ALT5_gc   (0x05 << 0)
+  #define PORTMUX_SPI0_ALT6_gc   (0x06 << 0)
+  #define PORTMUX_SPI0_NONE_gc   (0x07 << 0)
+#endif
+/**********************
+* COMPATIBILITY STUFF *
+**********************/
 
 /* Microchip has shown a tendency to rename registers bitfields and similar between product lines, even when the behavior is identical.
  * This is a major hindrance to writing highly portable code which I assume is what most people wish to do. It certainly beats having
@@ -920,33 +1149,936 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
  * all the places they do this and provide a macro for backwards compatibility. For some bizarre reason you may wish to turn this off
  * maybe in preparation for jumping to another development environment like Microchip Studio that does not use Arduino cores.
  * Instead of backwards compatibilily, you want the opposite, which some wags have called "Backwards combatibility"
- * Defining BACKWARD_COMBATIBILITY_MODE turns off all of these definitions that paper over name changes.
+ * Defining BACKWARD_COMBATIBILITY_MODE turns off all of these definitions that paper over name changes, with the exception of the
+ * below analog comparator ones which are required for the builtin comparator library to work:
+ * Parts with windowed mode don't name the non-windowed mode the same thing, but we need to reference that setting to setup a
+ * comparator.
+ * Additionally for similar reasons relating to Event.h, the ginormous EVSYS defines are outside the #if as well. Look for the rest of the
+ * backward combatability stuff from a little after 2000 until the end of the file at line 5800 or so.
  */
+// Needed for init_clock() to compile any sketch with crystal selected on EA
+#if defined(__AVR_EA__)
+  #define CLKCTRL_CSUTHF_256_gc CLKCTRL_CSUTHF_256CYC_gc
+  #define CLKCTRL_CSUTHF_1K_gc CLKCTRL_CSUTHF_1KCYC_gc
+  #define CLKCTRL_CSUTHF_4K_gc CLKCTRL_CSUTHF_4KCYC_gc
+#else
+  #define CLKCTRL_CSUTHF_256CYC_gc CLKCTRL_CSUTHF_4K_gc
+  #define CLKCTRL_CSUTHF_1KCYC_gc CLKCTRL_CSUTHF_1K_gc
+  #define CLKCTRL_CSUTHF_4KCYC_gc CLKCTRL_CSUTHF_4K_gc
+#endif
+
+
+/* Normal interrupt mode on a part with windowed AC is the same as the unnamed mode on those without that feature */
+#if (defined(__AVR_DD__))
+  #define AC_INTMODE_NORMAL_BOTHEDGE_gc AC_INTMODE_BOTHEDGE_gc
+  #define AC_INTMODE_NORMAL_NEGEDGE_gc AC_INTMODE_NEGEDGE_gc
+  #define AC_INTMODE_NORMAL_POSEDGE_gc AC_INTMODE_POSEDGE_gc
+  #define AC_INTMODE_NORMAL_t AC_INTMODE_t
+#else
+  #define AC_INTMODE_BOTHEDGE_gc AC_INTMODE_NORMAL_BOTHEDGE_gc
+  #define AC_INTMODE_NEGEDGE_gc AC_INTMODE_NORMAL_NEGEDGE_gc
+  #define AC_INTMODE_POSEDGE_gc AC_INTMODE_NORMAL_POSEDGE_gc
+  #define AC_INTMODE_t AC_INTMODE_NORMAL_t
+#endif
+// TCB V1.0 (without event clock option) vs TCB V1.1 (with event clock and cascade)
+// You can still only divide the system clock by 1 or 2 though.
+// These compatibilility defines are required for core api functions like millis() and tone()
+#if (!defined(MEGATINYCORE) || MEGATINYCORE_SERIES >= 2) // 1.1 names
+  #define TCB_CLKSEL_CLKDIV1_gc TCB_CLKSEL_DIV1_gc
+  #define TCB_CLKSEL_CLKDIV2_gc TCB_CLKSEL_DIV2_gc
+  #define TCB_CLKSEL_CLKTCA_gc TCB_CLKSEL_TCA0_gc
+#else // 1.0 names, and an error if the sketch references the Event clock which we don't have yet
+  #define TCB_CLKSEL_DIV1_gc  TCB_CLKSEL_CLKDIV1_gc
+  #define TCB_CLKSEL_DIV2_gc  TCB_CLKSEL_CLKDIV2_gc
+  #define TCB_CLKSEL_TCA0_gc  TCB_CLKSEL_CLKTCA_gc
+  #define TCB_CLKSEL_EVENT_gc  (badCall("This processor does not support TCB count on event mode. Only Dx, Ex, and 2-series tiny support that"))
+#endif
+/* The next 850 lines or so concern the new EVSYS on the EA and later. It makes all pins equal. This is outside of backwards combatibility
+ * because these functions are needed in order for the libraries and examples packaged with the core to work - the same reason as the AC
+ * ones above.
+ * Except this time, it's about 840 lines more code.
+ */
+#if defined(_AVR_EVSYS_VERSION) && _AVR_EVSYS_VERSION == 3
+  #if defined(EVSYS_CHANNEL0)
+    #define EVSYS_CHANNEL0_OFF_gc EVSYS_CHANNEL_OFF_gc
+    #define EVSYS_CHANNEL0_UPDI_SYNCH_gc EVSYS_CHANNEL_UPDI_SYNCH_gc
+  #endif
+  #if defined(EVSYS_CHANNEL1)
+    #define EVSYS_CHANNEL1_OFF_gc EVSYS_CHANNEL_OFF_gc
+    #define EVSYS_CHANNEL1_UPDI_SYNCH_gc EVSYS_CHANNEL_UPDI_SYNCH_gc
+  #endif
+  #if defined(EVSYS_CHANNEL2)
+    #define EVSYS_CHANNEL2_OFF_gc EVSYS_CHANNEL_OFF_gc
+    #define EVSYS_CHANNEL2_UPDI_SYNCH_gc EVSYS_CHANNEL_UPDI_SYNCH_gc
+  #endif
+  #if defined(EVSYS_CHANNEL3)
+    #define EVSYS_CHANNEL3_OFF_gc EVSYS_CHANNEL_OFF_gc
+    #define EVSYS_CHANNEL3_UPDI_SYNCH_gc EVSYS_CHANNEL_UPDI_SYNCH_gc
+  #endif
+  #if defined(EVSYS_CHANNEL4)
+    #define EVSYS_CHANNEL4_OFF_gc EVSYS_CHANNEL_OFF_gc
+    #define EVSYS_CHANNEL4_UPDI_SYNCH_gc EVSYS_CHANNEL_UPDI_SYNCH_gc
+  #endif
+  #if defined(EVSYS_CHANNEL5)
+    #define EVSYS_CHANNEL5_OFF_gc EVSYS_CHANNEL_OFF_gc
+    #define EVSYS_CHANNEL5_UPDI_SYNCH_gc EVSYS_CHANNEL_UPDI_SYNCH_gc
+  #endif
+  #if defined(EVSYS_CHANNEL6)
+    #define EVSYS_CHANNEL6_OFF_gc EVSYS_CHANNEL_OFF_gc
+    #define EVSYS_CHANNEL6_UPDI_SYNCH_gc EVSYS_CHANNEL_UPDI_SYNCH_gc
+  #endif
+  #if defined(EVSYS_CHANNEL7)
+    #define EVSYS_CHANNEL7_OFF_gc EVSYS_CHANNEL_OFF_gc
+    #define EVSYS_CHANNEL7_UPDI_SYNCH_gc EVSYS_CHANNEL_UPDI_SYNCH_gc
+  #endif
+  #if defined(EVSYS_CHANNEL8)
+    #define EVSYS_CHANNEL8_OFF_gc EVSYS_CHANNEL_OFF_gc
+    #define EVSYS_CHANNEL8_UPDI_SYNCH_gc EVSYS_CHANNEL_UPDI_SYNCH_gc
+  #endif
+  #if defined(EVSYS_CHANNEL9)
+    #define EVSYS_CHANNEL9_OFF_gc EVSYS_CHANNEL_OFF_gc
+    #define EVSYS_CHANNEL9_UPDI_SYNCH_gc EVSYS_CHANNEL_UPDI_SYNCH_gc
+  #endif
+  #if defined(RTC)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_RTC_OVF_gc EVSYS_CHANNEL_RTC_OVF_gc
+      #define EVSYS_CHANNEL0_RTC_CMP_gc EVSYS_CHANNEL_RTC_CMP_gc
+      #define EVSYS_CHANNEL0_RTC_PITEV0_gc EVSYS_CHANNEL_RTC_PITEV0_gc
+      #define EVSYS_CHANNEL0_RTC_PITEV1_gc EVSYS_CHANNEL_RTC_PITEV1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_RTC_OVF_gc EVSYS_CHANNEL_RTC_OVF_gc
+      #define EVSYS_CHANNEL1_RTC_CMP_gc EVSYS_CHANNEL_RTC_CMP_gc
+      #define EVSYS_CHANNEL1_RTC_PITEV0_gc EVSYS_CHANNEL_RTC_PITEV0_gc
+      #define EVSYS_CHANNEL1_RTC_PITEV1_gc EVSYS_CHANNEL_RTC_PITEV1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_RTC_OVF_gc EVSYS_CHANNEL_RTC_OVF_gc
+      #define EVSYS_CHANNEL2_RTC_CMP_gc EVSYS_CHANNEL_RTC_CMP_gc
+      #define EVSYS_CHANNEL2_RTC_PITEV0_gc EVSYS_CHANNEL_RTC_PITEV0_gc
+      #define EVSYS_CHANNEL2_RTC_PITEV1_gc EVSYS_CHANNEL_RTC_PITEV1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_RTC_OVF_gc EVSYS_CHANNEL_RTC_OVF_gc
+      #define EVSYS_CHANNEL3_RTC_CMP_gc EVSYS_CHANNEL_RTC_CMP_gc
+      #define EVSYS_CHANNEL3_RTC_PITEV0_gc EVSYS_CHANNEL_RTC_PITEV0_gc
+      #define EVSYS_CHANNEL3_RTC_PITEV1_gc EVSYS_CHANNEL_RTC_PITEV1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_RTC_OVF_gc EVSYS_CHANNEL_RTC_OVF_gc
+      #define EVSYS_CHANNEL4_RTC_CMP_gc EVSYS_CHANNEL_RTC_CMP_gc
+      #define EVSYS_CHANNEL4_RTC_PITEV0_gc EVSYS_CHANNEL_RTC_PITEV0_gc
+      #define EVSYS_CHANNEL4_RTC_PITEV1_gc EVSYS_CHANNEL_RTC_PITEV1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_RTC_OVF_gc EVSYS_CHANNEL_RTC_OVF_gc
+      #define EVSYS_CHANNEL5_RTC_CMP_gc EVSYS_CHANNEL_RTC_CMP_gc
+      #define EVSYS_CHANNEL5_RTC_PITEV0_gc EVSYS_CHANNEL_RTC_PITEV0_gc
+      #define EVSYS_CHANNEL5_RTC_PITEV1_gc EVSYS_CHANNEL_RTC_PITEV1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_RTC_OVF_gc EVSYS_CHANNEL_RTC_OVF_gc
+      #define EVSYS_CHANNEL6_RTC_CMP_gc EVSYS_CHANNEL_RTC_CMP_gc
+      #define EVSYS_CHANNEL6_RTC_PITEV0_gc EVSYS_CHANNEL_RTC_PITEV0_gc
+      #define EVSYS_CHANNEL6_RTC_PITEV1_gc EVSYS_CHANNEL_RTC_PITEV1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_RTC_OVF_gc EVSYS_CHANNEL_RTC_OVF_gc
+      #define EVSYS_CHANNEL7_RTC_CMP_gc EVSYS_CHANNEL_RTC_CMP_gc
+      #define EVSYS_CHANNEL7_RTC_PITEV0_gc EVSYS_CHANNEL_RTC_PITEV0_gc
+      #define EVSYS_CHANNEL7_RTC_PITEV1_gc EVSYS_CHANNEL_RTC_PITEV1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_RTC_OVF_gc EVSYS_CHANNEL_RTC_OVF_gc
+      #define EVSYS_CHANNEL8_RTC_CMP_gc EVSYS_CHANNEL_RTC_CMP_gc
+      #define EVSYS_CHANNEL8_RTC_PITEV0_gc EVSYS_CHANNEL_RTC_PITEV0_gc
+      #define EVSYS_CHANNEL8_RTC_PITEV1_gc EVSYS_CHANNEL_RTC_PITEV1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_RTC_OVF_gc EVSYS_CHANNEL_RTC_OVF_gc
+      #define EVSYS_CHANNEL9_RTC_CMP_gc EVSYS_CHANNEL_RTC_CMP_gc
+      #define EVSYS_CHANNEL9_RTC_PITEV0_gc EVSYS_CHANNEL_RTC_PITEV0_gc
+      #define EVSYS_CHANNEL9_RTC_PITEV1_gc EVSYS_CHANNEL_RTC_PITEV1_gc
+    #endif
+  #endif
+  #if defined(CCL_TRUTH0)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_CCL_LUT0_gc EVSYS_CHANNEL_CCL_LUT0_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_CCL_LUT0_gc EVSYS_CHANNEL_CCL_LUT0_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_CCL_LUT0_gc EVSYS_CHANNEL_CCL_LUT0_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_CCL_LUT0_gc EVSYS_CHANNEL_CCL_LUT0_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_CCL_LUT0_gc EVSYS_CHANNEL_CCL_LUT0_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_CCL_LUT0_gc EVSYS_CHANNEL_CCL_LUT0_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_CCL_LUT0_gc EVSYS_CHANNEL_CCL_LUT0_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_CCL_LUT0_gc EVSYS_CHANNEL_CCL_LUT0_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_CCL_LUT0_gc EVSYS_CHANNEL_CCL_LUT0_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_CCL_LUT0_gc EVSYS_CHANNEL_CCL_LUT0_gc
+    #endif
+  #endif
+  #if defined(CCL_TRUTH1)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_CCL_LUT1_gc EVSYS_CHANNEL_CCL_LUT1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_CCL_LUT1_gc EVSYS_CHANNEL_CCL_LUT1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_CCL_LUT1_gc EVSYS_CHANNEL_CCL_LUT1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_CCL_LUT1_gc EVSYS_CHANNEL_CCL_LUT1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_CCL_LUT1_gc EVSYS_CHANNEL_CCL_LUT1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_CCL_LUT1_gc EVSYS_CHANNEL_CCL_LUT1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_CCL_LUT1_gc EVSYS_CHANNEL_CCL_LUT1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_CCL_LUT1_gc EVSYS_CHANNEL_CCL_LUT1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_CCL_LUT1_gc EVSYS_CHANNEL_CCL_LUT1_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_CCL_LUT1_gc EVSYS_CHANNEL_CCL_LUT1_gc
+    #endif
+  #endif
+  #if defined(CCL_TRUTH2)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_CCL_LUT2_gc EVSYS_CHANNEL_CCL_LUT2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_CCL_LUT2_gc EVSYS_CHANNEL_CCL_LUT2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_CCL_LUT2_gc EVSYS_CHANNEL_CCL_LUT2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_CCL_LUT2_gc EVSYS_CHANNEL_CCL_LUT2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_CCL_LUT2_gc EVSYS_CHANNEL_CCL_LUT2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_CCL_LUT2_gc EVSYS_CHANNEL_CCL_LUT2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_CCL_LUT2_gc EVSYS_CHANNEL_CCL_LUT2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_CCL_LUT2_gc EVSYS_CHANNEL_CCL_LUT2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_CCL_LUT2_gc EVSYS_CHANNEL_CCL_LUT2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_CCL_LUT2_gc EVSYS_CHANNEL_CCL_LUT2_gc
+    #endif
+  #endif
+  #if defined(CCL_TRUTH3)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_CCL_LUT3_gc EVSYS_CHANNEL_CCL_LUT3_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_CCL_LUT3_gc EVSYS_CHANNEL_CCL_LUT3_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_CCL_LUT3_gc EVSYS_CHANNEL_CCL_LUT3_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_CCL_LUT3_gc EVSYS_CHANNEL_CCL_LUT3_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_CCL_LUT3_gc EVSYS_CHANNEL_CCL_LUT3_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_CCL_LUT3_gc EVSYS_CHANNEL_CCL_LUT3_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_CCL_LUT3_gc EVSYS_CHANNEL_CCL_LUT3_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_CCL_LUT3_gc EVSYS_CHANNEL_CCL_LUT3_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_CCL_LUT3_gc EVSYS_CHANNEL_CCL_LUT3_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_CCL_LUT3_gc EVSYS_CHANNEL_CCL_LUT3_gc
+    #endif
+  #endif
+  #if defined(CCL_TRUTH4)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_CCL_LUT4_gc EVSYS_CHANNEL_CCL_LUT4_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_CCL_LUT4_gc EVSYS_CHANNEL_CCL_LUT4_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_CCL_LUT4_gc EVSYS_CHANNEL_CCL_LUT4_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_CCL_LUT4_gc EVSYS_CHANNEL_CCL_LUT4_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_CCL_LUT4_gc EVSYS_CHANNEL_CCL_LUT4_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_CCL_LUT4_gc EVSYS_CHANNEL_CCL_LUT4_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_CCL_LUT4_gc EVSYS_CHANNEL_CCL_LUT4_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_CCL_LUT4_gc EVSYS_CHANNEL_CCL_LUT4_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_CCL_LUT4_gc EVSYS_CHANNEL_CCL_LUT4_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_CCL_LUT4_gc EVSYS_CHANNEL_CCL_LUT4_gc
+    #endif
+  #endif
+  #if defined(CCL_TRUTH5)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_CCL_LUT5_gc EVSYS_CHANNEL_CCL_LUT5_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_CCL_LUT5_gc EVSYS_CHANNEL_CCL_LUT5_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_CCL_LUT5_gc EVSYS_CHANNEL_CCL_LUT5_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_CCL_LUT5_gc EVSYS_CHANNEL_CCL_LUT5_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_CCL_LUT5_gc EVSYS_CHANNEL_CCL_LUT5_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_CCL_LUT5_gc EVSYS_CHANNEL_CCL_LUT5_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_CCL_LUT5_gc EVSYS_CHANNEL_CCL_LUT5_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_CCL_LUT5_gc EVSYS_CHANNEL_CCL_LUT5_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_CCL_LUT5_gc EVSYS_CHANNEL_CCL_LUT5_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_CCL_LUT5_gc EVSYS_CHANNEL_CCL_LUT5_gc
+    #endif
+  #endif
+  #if defined(AC0)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_AC0_OUT_gc EVSYS_CHANNEL_AC0_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_AC0_OUT_gc EVSYS_CHANNEL_AC0_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_AC0_OUT_gc EVSYS_CHANNEL_AC0_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_AC0_OUT_gc EVSYS_CHANNEL_AC0_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_AC0_OUT_gc EVSYS_CHANNEL_AC0_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_AC0_OUT_gc EVSYS_CHANNEL_AC0_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_AC0_OUT_gc EVSYS_CHANNEL_AC0_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_AC0_OUT_gc EVSYS_CHANNEL_AC0_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_AC0_OUT_gc EVSYS_CHANNEL_AC0_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_AC0_OUT_gc EVSYS_CHANNEL_AC0_OUT_gc
+    #endif
+  #endif
+  #if defined(AC1)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_AC1_OUT_gc EVSYS_CHANNEL_AC1_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_AC1_OUT_gc EVSYS_CHANNEL_AC1_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_AC1_OUT_gc EVSYS_CHANNEL_AC1_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_AC1_OUT_gc EVSYS_CHANNEL_AC1_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_AC1_OUT_gc EVSYS_CHANNEL_AC1_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_AC1_OUT_gc EVSYS_CHANNEL_AC1_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_AC1_OUT_gc EVSYS_CHANNEL_AC1_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_AC1_OUT_gc EVSYS_CHANNEL_AC1_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_AC1_OUT_gc EVSYS_CHANNEL_AC1_OUT_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_AC1_OUT_gc EVSYS_CHANNEL_AC1_OUT_gc
+    #endif
+  #endif
+  #if defined(ADC0)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_ADC0_RES_gc EVSYS_CHANNEL_ADC0_RES_gc
+      #define EVSYS_CHANNEL0_ADC0_SAMP_gc EVSYS_CHANNEL_ADC0_SAMP_gc
+      #define EVSYS_CHANNEL0_ADC0_WCMP_gc EVSYS_CHANNEL_ADC0_WCMP_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_ADC0_RES_gc EVSYS_CHANNEL_ADC0_RES_gc
+      #define EVSYS_CHANNEL1_ADC0_SAMP_gc EVSYS_CHANNEL_ADC0_SAMP_gc
+      #define EVSYS_CHANNEL1_ADC0_WCMP_gc EVSYS_CHANNEL_ADC0_WCMP_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_ADC0_RES_gc EVSYS_CHANNEL_ADC0_RES_gc
+      #define EVSYS_CHANNEL2_ADC0_SAMP_gc EVSYS_CHANNEL_ADC0_SAMP_gc
+      #define EVSYS_CHANNEL2_ADC0_WCMP_gc EVSYS_CHANNEL_ADC0_WCMP_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_ADC0_RES_gc EVSYS_CHANNEL_ADC0_RES_gc
+      #define EVSYS_CHANNEL3_ADC0_SAMP_gc EVSYS_CHANNEL_ADC0_SAMP_gc
+      #define EVSYS_CHANNEL3_ADC0_WCMP_gc EVSYS_CHANNEL_ADC0_WCMP_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_ADC0_RES_gc EVSYS_CHANNEL_ADC0_RES_gc
+      #define EVSYS_CHANNEL4_ADC0_SAMP_gc EVSYS_CHANNEL_ADC0_SAMP_gc
+      #define EVSYS_CHANNEL4_ADC0_WCMP_gc EVSYS_CHANNEL_ADC0_WCMP_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_ADC0_RES_gc EVSYS_CHANNEL_ADC0_RES_gc
+      #define EVSYS_CHANNEL5_ADC0_SAMP_gc EVSYS_CHANNEL_ADC0_SAMP_gc
+      #define EVSYS_CHANNEL5_ADC0_WCMP_gc EVSYS_CHANNEL_ADC0_WCMP_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_ADC0_RES_gc EVSYS_CHANNEL_ADC0_RES_gc
+      #define EVSYS_CHANNEL6_ADC0_SAMP_gc EVSYS_CHANNEL_ADC0_SAMP_gc
+      #define EVSYS_CHANNEL6_ADC0_WCMP_gc EVSYS_CHANNEL_ADC0_WCMP_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_ADC0_RES_gc EVSYS_CHANNEL_ADC0_RES_gc
+      #define EVSYS_CHANNEL7_ADC0_SAMP_gc EVSYS_CHANNEL_ADC0_SAMP_gc
+      #define EVSYS_CHANNEL7_ADC0_WCMP_gc EVSYS_CHANNEL_ADC0_WCMP_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_ADC0_RES_gc EVSYS_CHANNEL_ADC0_RES_gc
+      #define EVSYS_CHANNEL8_ADC0_SAMP_gc EVSYS_CHANNEL_ADC0_SAMP_gc
+      #define EVSYS_CHANNEL8_ADC0_WCMP_gc EVSYS_CHANNEL_ADC0_WCMP_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_ADC0_RES_gc EVSYS_CHANNEL_ADC0_RES_gc
+      #define EVSYS_CHANNEL9_ADC0_SAMP_gc EVSYS_CHANNEL_ADC0_SAMP_gc
+      #define EVSYS_CHANNEL9_ADC0_WCMP_gc EVSYS_CHANNEL_ADC0_WCMP_gc
+    #endif
+  #endif
+  #if defined(USART0)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_USART0_XCK_gc EVSYS_CHANNEL_USART0_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_USART0_XCK_gc EVSYS_CHANNEL_USART0_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_USART0_XCK_gc EVSYS_CHANNEL_USART0_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_USART0_XCK_gc EVSYS_CHANNEL_USART0_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_USART0_XCK_gc EVSYS_CHANNEL_USART0_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_USART0_XCK_gc EVSYS_CHANNEL_USART0_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_USART0_XCK_gc EVSYS_CHANNEL_USART0_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_USART0_XCK_gc EVSYS_CHANNEL_USART0_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_USART0_XCK_gc EVSYS_CHANNEL_USART0_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_USART0_XCK_gc EVSYS_CHANNEL_USART0_XCK_gc
+    #endif
+  #endif
+  #if defined(USART1)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_USART1_XCK_gc EVSYS_CHANNEL_USART1_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_USART1_XCK_gc EVSYS_CHANNEL_USART1_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_USART1_XCK_gc EVSYS_CHANNEL_USART1_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_USART1_XCK_gc EVSYS_CHANNEL_USART1_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_USART1_XCK_gc EVSYS_CHANNEL_USART1_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_USART1_XCK_gc EVSYS_CHANNEL_USART1_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_USART1_XCK_gc EVSYS_CHANNEL_USART1_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_USART1_XCK_gc EVSYS_CHANNEL_USART1_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_USART1_XCK_gc EVSYS_CHANNEL_USART1_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_USART1_XCK_gc EVSYS_CHANNEL_USART1_XCK_gc
+    #endif
+  #endif
+  #if defined(USART2)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_USART2_XCK_gc EVSYS_CHANNEL_USART2_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_USART2_XCK_gc EVSYS_CHANNEL_USART2_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_USART2_XCK_gc EVSYS_CHANNEL_USART2_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_USART2_XCK_gc EVSYS_CHANNEL_USART2_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_USART2_XCK_gc EVSYS_CHANNEL_USART2_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_USART2_XCK_gc EVSYS_CHANNEL_USART2_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_USART2_XCK_gc EVSYS_CHANNEL_USART2_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_USART2_XCK_gc EVSYS_CHANNEL_USART2_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_USART2_XCK_gc EVSYS_CHANNEL_USART2_XCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_USART2_XCK_gc EVSYS_CHANNEL_USART2_XCK_gc
+    #endif
+  #endif
+  #if defined(SPI0)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_SPI0_SCK_gc EVSYS_CHANNEL_SPI0_SCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_SPI0_SCK_gc EVSYS_CHANNEL_SPI0_SCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_SPI0_SCK_gc EVSYS_CHANNEL_SPI0_SCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_SPI0_SCK_gc EVSYS_CHANNEL_SPI0_SCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_SPI0_SCK_gc EVSYS_CHANNEL_SPI0_SCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_SPI0_SCK_gc EVSYS_CHANNEL_SPI0_SCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_SPI0_SCK_gc EVSYS_CHANNEL_SPI0_SCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_SPI0_SCK_gc EVSYS_CHANNEL_SPI0_SCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_SPI0_SCK_gc EVSYS_CHANNEL_SPI0_SCK_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_SPI0_SCK_gc EVSYS_CHANNEL_SPI0_SCK_gc
+    #endif
+  #endif
+  #if defined(TCA0)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_TCA0_OVF_LUNF_gc EVSYS_CHANNEL_TCA0_OVF_LUNF_gc
+      #define EVSYS_CHANNEL0_TCA0_HUNF_gc EVSYS_CHANNEL_TCA0_HUNF_gc
+      #define EVSYS_CHANNEL0_TCA0_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA0_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL0_TCA0_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA0_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL0_TCA0_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA0_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_TCA0_OVF_LUNF_gc EVSYS_CHANNEL_TCA0_OVF_LUNF_gc
+      #define EVSYS_CHANNEL1_TCA0_HUNF_gc EVSYS_CHANNEL_TCA0_HUNF_gc
+      #define EVSYS_CHANNEL1_TCA0_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA0_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL1_TCA0_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA0_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL1_TCA0_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA0_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_TCA0_OVF_LUNF_gc EVSYS_CHANNEL_TCA0_OVF_LUNF_gc
+      #define EVSYS_CHANNEL2_TCA0_HUNF_gc EVSYS_CHANNEL_TCA0_HUNF_gc
+      #define EVSYS_CHANNEL2_TCA0_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA0_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL2_TCA0_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA0_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL2_TCA0_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA0_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_TCA0_OVF_LUNF_gc EVSYS_CHANNEL_TCA0_OVF_LUNF_gc
+      #define EVSYS_CHANNEL3_TCA0_HUNF_gc EVSYS_CHANNEL_TCA0_HUNF_gc
+      #define EVSYS_CHANNEL3_TCA0_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA0_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL3_TCA0_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA0_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL3_TCA0_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA0_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_TCA0_OVF_LUNF_gc EVSYS_CHANNEL_TCA0_OVF_LUNF_gc
+      #define EVSYS_CHANNEL4_TCA0_HUNF_gc EVSYS_CHANNEL_TCA0_HUNF_gc
+      #define EVSYS_CHANNEL4_TCA0_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA0_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL4_TCA0_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA0_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL4_TCA0_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA0_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_TCA0_OVF_LUNF_gc EVSYS_CHANNEL_TCA0_OVF_LUNF_gc
+      #define EVSYS_CHANNEL5_TCA0_HUNF_gc EVSYS_CHANNEL_TCA0_HUNF_gc
+      #define EVSYS_CHANNEL5_TCA0_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA0_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL5_TCA0_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA0_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL5_TCA0_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA0_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_TCA0_OVF_LUNF_gc EVSYS_CHANNEL_TCA0_OVF_LUNF_gc
+      #define EVSYS_CHANNEL6_TCA0_HUNF_gc EVSYS_CHANNEL_TCA0_HUNF_gc
+      #define EVSYS_CHANNEL6_TCA0_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA0_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL6_TCA0_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA0_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL6_TCA0_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA0_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_TCA0_OVF_LUNF_gc EVSYS_CHANNEL_TCA0_OVF_LUNF_gc
+      #define EVSYS_CHANNEL7_TCA0_HUNF_gc EVSYS_CHANNEL_TCA0_HUNF_gc
+      #define EVSYS_CHANNEL7_TCA0_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA0_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL7_TCA0_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA0_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL7_TCA0_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA0_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_TCA0_OVF_LUNF_gc EVSYS_CHANNEL_TCA0_OVF_LUNF_gc
+      #define EVSYS_CHANNEL8_TCA0_HUNF_gc EVSYS_CHANNEL_TCA0_HUNF_gc
+      #define EVSYS_CHANNEL8_TCA0_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA0_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL8_TCA0_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA0_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL8_TCA0_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA0_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_TCA0_OVF_LUNF_gc EVSYS_CHANNEL_TCA0_OVF_LUNF_gc
+      #define EVSYS_CHANNEL9_TCA0_HUNF_gc EVSYS_CHANNEL_TCA0_HUNF_gc
+      #define EVSYS_CHANNEL9_TCA0_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA0_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL9_TCA0_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA0_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL9_TCA0_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA0_CMP2_LCMP2_gc
+    #endif
+  #endif
+  #if defined(TCA1)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_TCA1_OVF_LUNF_gc EVSYS_CHANNEL_TCA1_OVF_LUNF_gc
+      #define EVSYS_CHANNEL0_TCA1_HUNF_gc EVSYS_CHANNEL_TCA1_HUNF_gc
+      #define EVSYS_CHANNEL0_TCA1_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA1_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL0_TCA1_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA1_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL0_TCA1_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA1_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_TCA1_OVF_LUNF_gc EVSYS_CHANNEL_TCA1_OVF_LUNF_gc
+      #define EVSYS_CHANNEL1_TCA1_HUNF_gc EVSYS_CHANNEL_TCA1_HUNF_gc
+      #define EVSYS_CHANNEL1_TCA1_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA1_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL1_TCA1_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA1_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL1_TCA1_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA1_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_TCA1_OVF_LUNF_gc EVSYS_CHANNEL_TCA1_OVF_LUNF_gc
+      #define EVSYS_CHANNEL2_TCA1_HUNF_gc EVSYS_CHANNEL_TCA1_HUNF_gc
+      #define EVSYS_CHANNEL2_TCA1_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA1_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL2_TCA1_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA1_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL2_TCA1_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA1_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_TCA1_OVF_LUNF_gc EVSYS_CHANNEL_TCA1_OVF_LUNF_gc
+      #define EVSYS_CHANNEL3_TCA1_HUNF_gc EVSYS_CHANNEL_TCA1_HUNF_gc
+      #define EVSYS_CHANNEL3_TCA1_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA1_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL3_TCA1_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA1_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL3_TCA1_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA1_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_TCA1_OVF_LUNF_gc EVSYS_CHANNEL_TCA1_OVF_LUNF_gc
+      #define EVSYS_CHANNEL4_TCA1_HUNF_gc EVSYS_CHANNEL_TCA1_HUNF_gc
+      #define EVSYS_CHANNEL4_TCA1_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA1_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL4_TCA1_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA1_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL4_TCA1_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA1_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_TCA1_OVF_LUNF_gc EVSYS_CHANNEL_TCA1_OVF_LUNF_gc
+      #define EVSYS_CHANNEL5_TCA1_HUNF_gc EVSYS_CHANNEL_TCA1_HUNF_gc
+      #define EVSYS_CHANNEL5_TCA1_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA1_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL5_TCA1_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA1_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL5_TCA1_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA1_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_TCA1_OVF_LUNF_gc EVSYS_CHANNEL_TCA1_OVF_LUNF_gc
+      #define EVSYS_CHANNEL6_TCA1_HUNF_gc EVSYS_CHANNEL_TCA1_HUNF_gc
+      #define EVSYS_CHANNEL6_TCA1_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA1_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL6_TCA1_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA1_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL6_TCA1_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA1_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_TCA1_OVF_LUNF_gc EVSYS_CHANNEL_TCA1_OVF_LUNF_gc
+      #define EVSYS_CHANNEL7_TCA1_HUNF_gc EVSYS_CHANNEL_TCA1_HUNF_gc
+      #define EVSYS_CHANNEL7_TCA1_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA1_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL7_TCA1_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA1_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL7_TCA1_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA1_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_TCA1_OVF_LUNF_gc EVSYS_CHANNEL_TCA1_OVF_LUNF_gc
+      #define EVSYS_CHANNEL8_TCA1_HUNF_gc EVSYS_CHANNEL_TCA1_HUNF_gc
+      #define EVSYS_CHANNEL8_TCA1_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA1_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL8_TCA1_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA1_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL8_TCA1_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA1_CMP2_LCMP2_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_TCA1_OVF_LUNF_gc EVSYS_CHANNEL_TCA1_OVF_LUNF_gc
+      #define EVSYS_CHANNEL9_TCA1_HUNF_gc EVSYS_CHANNEL_TCA1_HUNF_gc
+      #define EVSYS_CHANNEL9_TCA1_CMP0_LCMP0_gc EVSYS_CHANNEL_TCA1_CMP0_LCMP0_gc
+      #define EVSYS_CHANNEL9_TCA1_CMP1_LCMP1_gc EVSYS_CHANNEL_TCA1_CMP1_LCMP1_gc
+      #define EVSYS_CHANNEL9_TCA1_CMP2_LCMP2_gc EVSYS_CHANNEL_TCA1_CMP2_LCMP2_gc
+    #endif
+  #endif
+  #if defined(TCB0)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_TCB0_CAPT_gc EVSYS_CHANNEL_TCB0_CAPT_gc
+      #define EVSYS_CHANNEL0_TCB0_OVF_gc EVSYS_CHANNEL_TCB0_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_TCB0_CAPT_gc EVSYS_CHANNEL_TCB0_CAPT_gc
+      #define EVSYS_CHANNEL1_TCB0_OVF_gc EVSYS_CHANNEL_TCB0_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_TCB0_CAPT_gc EVSYS_CHANNEL_TCB0_CAPT_gc
+      #define EVSYS_CHANNEL2_TCB0_OVF_gc EVSYS_CHANNEL_TCB0_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_TCB0_CAPT_gc EVSYS_CHANNEL_TCB0_CAPT_gc
+      #define EVSYS_CHANNEL3_TCB0_OVF_gc EVSYS_CHANNEL_TCB0_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_TCB0_CAPT_gc EVSYS_CHANNEL_TCB0_CAPT_gc
+      #define EVSYS_CHANNEL4_TCB0_OVF_gc EVSYS_CHANNEL_TCB0_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_TCB0_CAPT_gc EVSYS_CHANNEL_TCB0_CAPT_gc
+      #define EVSYS_CHANNEL5_TCB0_OVF_gc EVSYS_CHANNEL_TCB0_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_TCB0_CAPT_gc EVSYS_CHANNEL_TCB0_CAPT_gc
+      #define EVSYS_CHANNEL6_TCB0_OVF_gc EVSYS_CHANNEL_TCB0_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_TCB0_CAPT_gc EVSYS_CHANNEL_TCB0_CAPT_gc
+      #define EVSYS_CHANNEL7_TCB0_OVF_gc EVSYS_CHANNEL_TCB0_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_TCB0_CAPT_gc EVSYS_CHANNEL_TCB0_CAPT_gc
+      #define EVSYS_CHANNEL8_TCB0_OVF_gc EVSYS_CHANNEL_TCB0_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_TCB0_CAPT_gc EVSYS_CHANNEL_TCB0_CAPT_gc
+      #define EVSYS_CHANNEL9_TCB0_OVF_gc EVSYS_CHANNEL_TCB0_OVF_gc
+    #endif
+  #endif
+  #if defined(TCB1)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_TCB1_CAPT_gc EVSYS_CHANNEL_TCB1_CAPT_gc
+      #define EVSYS_CHANNEL0_TCB1_OVF_gc EVSYS_CHANNEL_TCB1_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_TCB1_CAPT_gc EVSYS_CHANNEL_TCB1_CAPT_gc
+      #define EVSYS_CHANNEL1_TCB1_OVF_gc EVSYS_CHANNEL_TCB1_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_TCB1_CAPT_gc EVSYS_CHANNEL_TCB1_CAPT_gc
+      #define EVSYS_CHANNEL2_TCB1_OVF_gc EVSYS_CHANNEL_TCB1_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_TCB1_CAPT_gc EVSYS_CHANNEL_TCB1_CAPT_gc
+      #define EVSYS_CHANNEL3_TCB1_OVF_gc EVSYS_CHANNEL_TCB1_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_TCB1_CAPT_gc EVSYS_CHANNEL_TCB1_CAPT_gc
+      #define EVSYS_CHANNEL4_TCB1_OVF_gc EVSYS_CHANNEL_TCB1_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_TCB1_CAPT_gc EVSYS_CHANNEL_TCB1_CAPT_gc
+      #define EVSYS_CHANNEL5_TCB1_OVF_gc EVSYS_CHANNEL_TCB1_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_TCB1_CAPT_gc EVSYS_CHANNEL_TCB1_CAPT_gc
+      #define EVSYS_CHANNEL6_TCB1_OVF_gc EVSYS_CHANNEL_TCB1_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_TCB1_CAPT_gc EVSYS_CHANNEL_TCB1_CAPT_gc
+      #define EVSYS_CHANNEL7_TCB1_OVF_gc EVSYS_CHANNEL_TCB1_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_TCB1_CAPT_gc EVSYS_CHANNEL_TCB1_CAPT_gc
+      #define EVSYS_CHANNEL8_TCB1_OVF_gc EVSYS_CHANNEL_TCB1_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_TCB1_CAPT_gc EVSYS_CHANNEL_TCB1_CAPT_gc
+      #define EVSYS_CHANNEL9_TCB1_OVF_gc EVSYS_CHANNEL_TCB1_OVF_gc
+    #endif
+  #endif
+  #if defined(TCB2)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_TCB2_CAPT_gc EVSYS_CHANNEL_TCB2_CAPT_gc
+      #define EVSYS_CHANNEL0_TCB2_OVF_gc EVSYS_CHANNEL_TCB2_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_TCB2_CAPT_gc EVSYS_CHANNEL_TCB2_CAPT_gc
+      #define EVSYS_CHANNEL1_TCB2_OVF_gc EVSYS_CHANNEL_TCB2_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_TCB2_CAPT_gc EVSYS_CHANNEL_TCB2_CAPT_gc
+      #define EVSYS_CHANNEL2_TCB2_OVF_gc EVSYS_CHANNEL_TCB2_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_TCB2_CAPT_gc EVSYS_CHANNEL_TCB2_CAPT_gc
+      #define EVSYS_CHANNEL3_TCB2_OVF_gc EVSYS_CHANNEL_TCB2_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_TCB2_CAPT_gc EVSYS_CHANNEL_TCB2_CAPT_gc
+      #define EVSYS_CHANNEL4_TCB2_OVF_gc EVSYS_CHANNEL_TCB2_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_TCB2_CAPT_gc EVSYS_CHANNEL_TCB2_CAPT_gc
+      #define EVSYS_CHANNEL5_TCB2_OVF_gc EVSYS_CHANNEL_TCB2_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_TCB2_CAPT_gc EVSYS_CHANNEL_TCB2_CAPT_gc
+      #define EVSYS_CHANNEL6_TCB2_OVF_gc EVSYS_CHANNEL_TCB2_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_TCB2_CAPT_gc EVSYS_CHANNEL_TCB2_CAPT_gc
+      #define EVSYS_CHANNEL7_TCB2_OVF_gc EVSYS_CHANNEL_TCB2_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_TCB2_CAPT_gc EVSYS_CHANNEL_TCB2_CAPT_gc
+      #define EVSYS_CHANNEL8_TCB2_OVF_gc EVSYS_CHANNEL_TCB2_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_TCB2_CAPT_gc EVSYS_CHANNEL_TCB2_CAPT_gc
+      #define EVSYS_CHANNEL9_TCB2_OVF_gc EVSYS_CHANNEL_TCB2_OVF_gc
+    #endif
+  #endif
+  #if defined(TCB3)
+    #if defined(EVSYS_CHANNEL0)
+      #define EVSYS_CHANNEL0_TCB3_CAPT_gc EVSYS_CHANNEL_TCB3_CAPT_gc
+      #define EVSYS_CHANNEL0_TCB3_OVF_gc EVSYS_CHANNEL_TCB3_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL1)
+      #define EVSYS_CHANNEL1_TCB3_CAPT_gc EVSYS_CHANNEL_TCB3_CAPT_gc
+      #define EVSYS_CHANNEL1_TCB3_OVF_gc EVSYS_CHANNEL_TCB3_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL2)
+      #define EVSYS_CHANNEL2_TCB3_CAPT_gc EVSYS_CHANNEL_TCB3_CAPT_gc
+      #define EVSYS_CHANNEL2_TCB3_OVF_gc EVSYS_CHANNEL_TCB3_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL3)
+      #define EVSYS_CHANNEL3_TCB3_CAPT_gc EVSYS_CHANNEL_TCB3_CAPT_gc
+      #define EVSYS_CHANNEL3_TCB3_OVF_gc EVSYS_CHANNEL_TCB3_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL4)
+      #define EVSYS_CHANNEL4_TCB3_CAPT_gc EVSYS_CHANNEL_TCB3_CAPT_gc
+      #define EVSYS_CHANNEL4_TCB3_OVF_gc EVSYS_CHANNEL_TCB3_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL5)
+      #define EVSYS_CHANNEL5_TCB3_CAPT_gc EVSYS_CHANNEL_TCB3_CAPT_gc
+      #define EVSYS_CHANNEL5_TCB3_OVF_gc EVSYS_CHANNEL_TCB3_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL6)
+      #define EVSYS_CHANNEL6_TCB3_CAPT_gc EVSYS_CHANNEL_TCB3_CAPT_gc
+      #define EVSYS_CHANNEL6_TCB3_OVF_gc EVSYS_CHANNEL_TCB3_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL7)
+      #define EVSYS_CHANNEL7_TCB3_CAPT_gc EVSYS_CHANNEL_TCB3_CAPT_gc
+      #define EVSYS_CHANNEL7_TCB3_OVF_gc EVSYS_CHANNEL_TCB3_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL8)
+      #define EVSYS_CHANNEL8_TCB3_CAPT_gc EVSYS_CHANNEL_TCB3_CAPT_gc
+      #define EVSYS_CHANNEL8_TCB3_OVF_gc EVSYS_CHANNEL_TCB3_OVF_gc
+    #endif
+    #if defined(EVSYS_CHANNEL9)
+      #define EVSYS_CHANNEL9_TCB3_CAPT_gc EVSYS_CHANNEL_TCB3_CAPT_gc
+      #define EVSYS_CHANNEL9_TCB3_OVF_gc EVSYS_CHANNEL_TCB3_OVF_gc
+    #endif
+  #endif
+#endif // End the EVSYS Ex-series compatibility hack
 
 // In backwards "combatability" mode, none of these helper definitions are provided
 // in order to force you to use the canonical names for these registers and options.
+// This is useful if migrating from arduino to official microchip tooling, or if you are "biIDEingual"
+// and use both stock Microchip tools and Arduino, so you don't get used to using the "wrong" name
 // Otherwise, we try our best paper over the stupid bitfield and groupcode name changes.
 
 // #define BACKWARD_COMBATIBILITY_MODE
 
 #if !defined(BACKWARD_COMBATIBILITY_MODE)
-  // We default to seeking compatibility. for COMBATability you would uncomment that #define, and that turns all these off.
-
+  // We default to seeking compatibility. For COMBATability you would uncomment that #define, and that turns all these off.
+  // So to put it very simply:
+  // If the above line is uncommented, the compatibility defines are turned OFF.
+  // If the above line remains commented out (recommended), the compatibility defines are turned ON.
   #if defined(RTC_CLKSEL)
     /* Man they just *HAD* to change the names of these values that get assigned to the same register and do the same thing didn't they?
-     * Worse still we can't even verify that they are present... just blindly define and pray. Enums can't be seen by macros
-     */
-     // tinyAVR has TOSC32K (tinyOscillator?)
+     * Worse still we can't even verify that they are present... just blindly define and pray. Enums can't be seen by macros */
+     // tinyAVR has TOSC32K (TinyOSCillator?)
     #if defined(MEGATINYCORE)
-      #define RTC_CLKSEL_OSC32K_gc            RTC_CLKSEL_INT32K_gc
+      #define RTC_CLKSEL_OSC32K_gc            RTC_CLKSEL_INT32K_gc  //Tiny has an INTernal oscillator at 32K
       #define RTC_CLKSEL_OSC1K_gc             RTC_CLKSEL_INT1K_gc
-      #define RTC_CLKSEL_XTAL32K_gc           RTC_CLKSEL_TOSC32K_gc
+      #define RTC_CLKSEL_XTAL32K_gc           RTC_CLKSEL_TOSC32K_gc // or an external TinyOSCillator at 32K
       #define RTC_CLKSEL_XOSC32K_gc           RTC_CLKSEL_TOSC32K_gc
     #else
-  // Dx has an XOSC32K
-      #define RTC_CLKSEL_INT32K_gc            RTC_CLKSEL_OSC32K_gc
+      // Dx has an XOSC32K (eXternal OSCillator)
+      // but briefly called XTAL32k on some parts
+      #define RTC_CLKSEL_INT32K_gc            RTC_CLKSEL_OSC32K_gc //Dx has an internal OSCillator at 32K
       #define RTC_CLKSEL_INT1K_gc             RTC_CLKSEL_OSC1K_gc
-      #define RTC_CLKSEL_TOSC32K_gc           RTC_CLKSEL_XOSC32K_gc
+      #define RTC_CLKSEL_TOSC32K_gc           RTC_CLKSEL_XOSC32K_gc //and an eXternal OSCillator at 32K
       #define RTC_CLKSEL_XTAL32K_gc           RTC_CLKSEL_XOSC32K_gc
     #endif
   #endif
@@ -968,18 +2100,65 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
    * On those parts, these are at addresses 0x0000-0x003, and 0x0004-0x000F do not appear to be used.
    * The other 22.... had THE ENTIRE FIRST HALF OF THE LOW I/O SPACE as GPIOR0-GPIORF!
    * Which ones got all of them and which ones only got 4 seems to have been chosen in typical
-   * Atmel fashion (hint: it involves flipping a coin). No apparent pattern in time or other parameters.
+   * Atmel fashion (hint: it involved flipping a coin). No apparent pattern in time or other parameters.
    * Either way, that left them with space for only 4 VPORT register sets (like the ones we got)
    * These had to be configured to point to the desired port.
-   * I'm sure everyone is grateful for the fact that the folks designing the Dx-series have their
-   * heads screwed on properly and realized that 4 GPIOR-- excuse me, GPRs, 4 awkward VPORTs and
-   * 12 unused addresses in the low I/O space was maybe not the best design decision made in the
+   * I'm sure everyone is grateful for the fact that the folks designing the modern AVRs had their
+   * heads screwed on more securely than the xMega team and realized that 4 GPIOR-- excuse me, GPRs, 4 awkward VPORTs and
+   * a handful of unused addresses in the low I/O space was maybe not the best design decision made in the
    * xmega line, particularly in light of the profound usefulness of the VPORT for interacting with
    * hardware in a performant and flash-efficient manner. This is clearly not why xMega failed
-   * in the market resulting in Microchip pretending they don't exist and why they were
-   * scavenged for parts during modern AVR development; there were more fundamental issues.
-   * But it didn't help, and this sort of halfassery with the treatment of the registers
-   * changing thrice during the xMega's run didn't help either.
+   * in the marketplace; there many other more fundamental issues, probably the largest of which was that they
+   * brought an 8-bit knife to a 32-bit gunfight, sending the first xMegas directly up against the new 32-bit ARMy
+   * As near as I can tell, they got crushed in the market. The AVR architecture has a few "flight ceilings" beyond which it starts to suffer.
+   * Most of the xmegas were above that in multiple dimensions. At 32 MHz, they were basically in the same class computationally as classic AVRs
+   * though they tried to alleviate that with DMA, but it was quite complicated to use. In fact, EVERYTHING on the xmega is fiendishly complex
+   * and that probably didn't do any favors for market adoption, and you can see in modern AVRs pieces of the xmega parts which have been
+   * streamlined significantly (trading a modest number of features, but mostly the least useful ones, for a big improvement in usability and
+   * a small number of simpler but often more powerful features).
+   *
+   * But regardless, the xmegas are not a rolemodel of success, even if they have their high points. They clearly know this at Microchip. From the
+   * outside, I imagine the designers scavenging in a junkyard car parts, except each car is represents a chip, and it's parts the peripherals and
+   * subsystems, the complexity and bulk reflective of the real peripherals, trying to build as much of a car as possible, so they have to do as
+   * little novel design as possible and can reach market faster.
+   * "How bout this CCL thing?"
+   * "Too complicated, look at all this crap on the back, what the hell were we thinking combining the CCL with mini timers?!"
+   * "I'm not sure we were thinking at all. Lets ditch the timer and all those other wacky accessories, and place em in pairs just 2 luts and a
+   * sequencer"
+   * "You can't do much with 2x 2 input LUTs..."
+   * "Sure, but once we get this timer off, we can just put a third input there"
+   * ,"Oh, great, throw it in and come over to review these timers we've found and decide which ones are the closest to something we want."
+   * "K, where do we meet?"
+   * "See those big contraptions over there? It's right between those; those are some of our candidate timers"
+   * "What?! Those gigantic things?"
+   * "Yeah, I know... the boss is pushing for one of those to go in"
+   * "Oh brother... where did he even find that?"
+   * "Well, it was a tiny861's T1, then it was extended to make PSC for the 32M1..., that's where he found it. But now he's calling it a 'TCD'"
+   * "....okay...."
+
+   * If you look at their latest upcoming products, it's clear that they've been doing this to more peripherals. The EB-series for example, pulls in the
+   * other monster of a timer that the characters above refer to, changing it's name to TCE - it's not mixed up with all the async crap of TCD,
+   * but it adds at least as much complexity, including a lot of similar features, as well as a simpler "TCF". I'm not sure if the TCF was a refurbished
+   * pull from their scrapyard, or a de-novo utility timer written for these parts to address some of the shortcomings in their PWM capabilities. And to
+   * find something else to do with that epic PLL.
+   *
+   * They needed act with a sense of urgency, as Atmel had taken their eye off the eight ball, and possibly balls 0x9 to 0xF too - classic AVR was stagnant, but xMega was
+   * not getting the kind of market penetration they'd hoped and expected), the final classic AVRs were the PB's on the mega side, which got "cut off" at the
+   * 324pb - likely a hard deadline for "no more classics after xx/yy/zzzz" was reached. The final tinies, the 841/441/1634/828 (the final four) generally showed
+   * visible symptoms of time pressure - subtle on the x41 (the most obvious being unused registers addresses in the low I/O while PUEx is marooned in the extended I/O
+   * instead of the low I/O like the other two parts did), clearly visible on the 1634, and so astonishingly, agonizingly debilitating to the 828 that
+   * I'm surprised they bothered to release it at all (it's crown jewel was the 28-input ADC... but the datasheet was clearly hastily redacted to omit
+   * any mention of having a differential ADC, and to add insult to injury, it's got a lame pin (sinks a few ma when WDT isn't on, yeah, wtf?) - and
+   * to add further injury to the insult, that pin happens to be the SCL pin.......
+   * to scrounding around in a junkyard full of xMega and Classic parts, looking for pieces that would go well on their new parts. "How bout this CCL
+   * thing?" "Too complicated, look at all this crap, what the hell were we thinking combining the CCL and timers?!" "Lets ditch the timer and all
+   * those other wacky accessories, just 2 luts and a sequencer" "You can't do much with 2x 2 input LUTs..." "'course, but that's not what we'd have
+   * , see, we can put a third input in place of the timer" "Oh, great, throw it in and come over to review the timers we've found and pick the ones
+   * we want to use." "K - ah, where are we meeting?" "See those two large contraptions over there? Between those. The boss is pushing for the one
+   * on the left" "That monstrosity?! What the hell is it even?" "It was a t861's T1, then it was a PSC... now he says it's going to be a TCD
+   * If you look at their latest upcoming products, it's clear that they've been doing this to more peripherals, like the upcoming EB-series is
+   * getting a new kind of timer with some version of WEX. Actually TWO new kinds of timer, though I don't know if the second simpler one was
+   * ganked from xMega or designed de novo.
    */
   #if !defined(GPIOR0)
     #define GPIOR0                            (_SFR_MEM8(0x001C))
@@ -1009,9 +2188,16 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
 
 
   #if defined (CLKCTRL_SELHF_bm)
-    /* They changed the damned name after selling the part for 6 months!
-     * annoyingly you can't even test if it's using the new version of the headers because it's an enum! */
-    #define CLKCTRL_SELHF_CRYSTAL_gc CLKCTRL_SELHF_XTAL_gc
+    /* They changed the damned name for DB after selling the part for 6 months! What was this incredibly
+     * important change? Changing CRYSTAL to XTAL! That's it!
+     * Annoyingly you can't even test if it's using the new version of the headers because it's an enum!
+     * BUT IT GETS WORSE! On EA, it's back to CRYSTAL!!! ARE YOU SERIOUS?
+     */
+    #if !defined(__AVR_EA__)
+      #define CLKCTRL_SELHF_CRYSTAL_gc CLKCTRL_SELHF_XTAL_gc
+    #else
+      #define CLKCTRL_SELHF_XTAL_gc CLKCTRL_SELHF_CRYSTAL_gc
+    #endif
   #endif
   /* And one version later they did it again... */
   #if !defined(CLKCTRL_FREQSEL_gm) && defined(CLKCTRL_FRQSEL_gm)
@@ -1046,20 +2232,13 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
     #define CLKCTRL_FRQSEL_32M_gc (CLKCTRL_FREQSEL_32M_gc)  /* 32 MHz system clock unofficial - this will just error out if used since it will replace one undefined symbol with another */
   #endif
   // Note that it is intended to not hide the fact that 28 and 32 MHz are not official. If you choose it from the menu, it says "Overclocked" next to the speed too. We refer to them with the numeric constants in the wiring.c, so it doesn't matter when used that way.
-  // And now the most freaking boneheaded move from Microchip in a long while: They realized that they should have had some sort of delimiter between the bit number within a bitfield, and the name of the bitfield, since the names of many bitfields end in numbers,
-  // So they went ahead and made that change. That is what's called a "breaking change", really for no reason except codes style. Most companies even if they decided to go that route, would never do that without introducuing a compatibility layer.
-  // That wanton disregard for backwards compatibility is not acceptable in an Arduino core nor in a commercial product.
-  // Using the old names will produce warnings. These deprecated names should be fixed as support for these FOUR THOUSAND LINES of bandaids WILL BE REMOBVED in 1.6.0!
-  //typedef const uint8_t __attribute__ ((deprecated("\nMicrochip changed the spelling of bits within a bitfiels (macros that end in the bitnumber followed by _bm or _bp), you are using the old name, ex PERIPH_BITFIRLD1_bm.\nYou should use PERIPH_BITFIELD_1_bm; we do not guarantee that this 4000-line bandaid will not be removed in the future.\r\nWhy did they do this? Beats me. Ask their support folks - if enough of us do it, they might hesitate next time they have the urge to mass rename things in their headers")))  deprecated_constant_name;
-
-  // Okay, well that fix didn't work so well. back to plan A.
 
 
   /* Add a feature - yay!
    * Rename registers so people can't carry code back and forth - booo!
    */
   // TCA V1.0 - tinyAVR 0/1, megaAVR 0
-  // this only has one event input, but code needs to be able to flow smoothly
+  // this only has one event input, but code needs to be able to run on newer parts too
   // so we define macros named after he the new version pointing to the old version of event input A.
   // Obviously, we can't do anything about the unfortunate soul who tries to use input B.
   #if !defined(TCA_SINGLE_CNTAEI_bm)
@@ -1070,8 +2249,7 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
     #define TCA_SINGLE_EVACTA_UPDOWN_gc TCA_SINGLE_EVACTA_UPDOWN_gc
   #endif
   // TCA V1.1 - DA, DB, tinyAVR 2?
-  //  with two inputs changes the names the existing ones to specify channel A
-  // We add in the non-postfixed ana
+  // Now there are event actions A and B!
   #if !defined(TCA_SINGLE_CNTEI_bm)
     #define _TCA_
     #define TCA_SINGLE_CNTEI_bm TCA_SINGLE_CNTAEI_bm
@@ -1081,30 +2259,75 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
     #define TCA_SINGLE_EVACT_UPDOWN_gc TCA_SINGLE_EVACTA_UPDOWN_gc
   #endif
 
-  #if (!defined(MEGATINYCORE) || MEGATINYCORE_SERIES >= 2)
-    #define TCB_CLKSEL_CLKDIV1_gc TCB_CLKSEL_DIV1_gc
-    #define TCB_CLKSEL_CLKDIV2_gc TCB_CLKSEL_DIV2_gc
-    #define TCB_CLKSEL_CLKTCA_gc TCB_CLKSEL_TCA0_gc
-  #else
-    #define TCB_CLKSEL_DIV1_gc  TCB_CLKSEL_CLKDIV1_gc
-    #define TCB_CLKSEL_DIV2_gc  TCB_CLKSEL_CLKDIV2_gc
-    #define TCB_CLKSEL_TCA0_gc  TCB_CLKSEL_CLKTCA_gc
-    #define TCB_CLKSEL_EVENT_gc  (badCall("This processor does not support TCB count on event mode. Only Dx, Ex, and 2-series tiny support that"))
-  #endif
   /* Make sure we error out quickly if told to use an RTC timing option that isn't available. */
   #if (defined(MILLIS_USE_TIMERRTC_XTAL) || defined(MILLIS_USE_TIMERRTC_XOSC))
     #if (MEGATINYCORE_SERIES == 0 || defined(__AVR_ATtinyxy2__))
       #error "Only the tinyAVR 1-series and 2-series parts with at least 14 pins support external RTC timebase"
     #endif
   #endif
-  // And now, it it appears that they realized that they should have had some sort of delimiter between the bit number within a bitfield, and the name of the bitfield, since the names of many bitfields end in numbers,
-  // So they went ahead and made that change. Without any compatibility layer.
-
+  #if defined(__AVR_EB__) // EB-series
+    // Yup, 1 family after we got evgenctrl,
+    #define EVGENCTRL EVGENCTRLA
+    #if defined(PORTB_EVGENCTRLA) && !defined(PORTA_EVGENCTRL)
+      #define PORTA_EVGENCTRL PORTA_EVGENCTRLA
+    #endif
+    #if defined(PORTB_EVGENCTRLA) && !defined(PORTB_EVGENCTRL)
+      #define PORTB_EVGENCTRL PORTB_EVGENCTRLA
+    #endif
+    #if defined(PORTC_EVGENCTRLA) && !defined(PORTC_EVGENCTRL)
+      #define PORTC_EVGENCTRL PORTC_EVGENCTRLA
+    #endif
+    #if defined(PORTD_EVGENCTRLA) && !defined(PORTD_EVGENCTRL)
+      #define PORTD_EVGENCTRL PORTD_EVGENCTRLA
+    #endif
+    #if defined(PORTE_EVGENCTRLA) && !defined(PORTE_EVGENCTRL)
+      #define PORTE_EVGENCTRL PORTE_EVGENCTRLA
+    #endif
+    #if defined(PORTF_EVGENCTRLA) && !defined(PORTF_EVGENCTRL)
+      #define PORTF_EVGENCTRL PORTF_EVGENCTRLA
+    #endif
+    #if defined(PORTG_EVGENCTRLA) && !defined(PORTG_EVGENCTRL)
+      #define PORTG_EVGENCTRL PORTG_EVGENCTRLA
+    #endif
+    #define CCL_INSEL0_IO_gc CCL_INSEL0_IN0_gc
+    #define CCL_INSEL1_IO_gc CCL_INSEL1_IN1_gc
+    #define CCL_INSEL2_IO_gc CCL_INSEL2_IN2_gc
+  #else
+    #if defined(PORTA_EVGENCTRL) && !defined(PORTA_EVGENCTRLA)
+      #define PORTA_EVGENCTRLA PORTA_EVGENCTRL
+    #endif
+    #if defined(PORTB_EVGENCTRL) && !defined(PORTB_EVGENCTRLA)
+      #define PORTB_EVGENCTRLA PORTB_EVGENCTRL
+    #endif
+    #if defined(PORTC_EVGENCTRL) && !defined(PORTC_EVGENCTRLA)
+      #define PORTC_EVGENCTRLA PORTC_EVGENCTRL
+    #endif
+    #if defined(PORTD_EVGENCTRL) && !defined(PORTD_EVGENCTRLA)
+      #define PORTD_EVGENCTRLA PORTD_EVGENCTRL
+    #endif
+    #if defined(PORTE_EVGENCTRL) && !defined(PORTE_EVGENCTRLA)
+      #define PORTE_EVGENCTRLA PORTE_EVGENCTRL
+    #endif
+    #if defined(PORTF_EVGENCTRL) && !defined(PORTF_EVGENCTRLA)
+      #define PORTF_EVGENCTRLA PORTF_EVGENCTRL
+    #endif
+    #if defined(PORTG_EVGENCTRL) && !defined(PORTG_EVGENCTRLA)
+      #define PORTG_EVGENCTRLA PORTG_EVGENCTRL
+    #endif
+    #define CCL_INSEL0_IN0_gc CCL_INSEL0_IO_gc
+    #define CCL_INSEL1_IN1_gc CCL_INSEL1_IO_gc
+    #define CCL_INSEL2_IN2_gc CCL_INSEL2_IO_gc
+  #endif
+  // And now the most freaking boneheaded move from Microchip in a long while - like at least since late 2020! So yeah sometime in 2022
+  // They realized that they should have had some sort of delimiter between the bit number within a bitfield, and the name of the bitfield,
+  // since the names of many bitfields end in numbers, so they went ahead and made that change. No compatibility layer or anything.
+  // That is what's called a "breaking change", really for no reason except code style. Most companies even if they decided to go that
+  // route, would never do that without introducuing a compatibility layer.
+  // That wanton disregard for backwards compatibility is not acceptable even in an Arduino core much less in a commercial product.
+  //
   // Well, I'd wanted to make deprecation warnings come up only if they were used. I was unuccessful.
-
   // typedef const uint8_t __attribute__ ((deprecated("\nMicrochip changed the spelling of bits within a bitfiels (macros that end in the bitnumber followed by _bm or _bp), you are using the old name, ex PERIPH_BITFIRLD1_bm.\nYou should use PERIPH_BITFIELD_1_bm; we do not guarantee that this 4000-line bandaid will not be removed in the future.\r\nWhy did they do this? Beats me. Ask their support folks - if enough of us do it, they might hesitate next time they have the urge to mass rename things in their headers")))  deprecated_constant_name;
-
-  // Okay, well that fix didn't work so well. back to plan A.
+  // back to plan A
   /* ======= ACs ======= */
   #if !defined(AC_HYSMODE_0_bm) && defined(AC_HYSMODE0_bm)
     #define AC_HYSMODE_0_bm AC_HYSMODE0_bm
@@ -5229,5 +6452,9 @@ That's how pessimistic I am left feeling about the prospects for errata fixes by
   #elif defined(ZCD_INTMODE_1_bp)
     #define ZCD_INTMODE1_bp ZCD_INTMODE_1_bp; //Deprecated as of Q2 2022 header change
   #endif
+/* EA-series - There was absolutely positively no reason to change the name of these bitfields. Someone ought to be slapped upside the head for this!
+ * And they're enums so we can't even test for the damned things
+ */
+
 #endif /* this is the end of the backwards compatibility defines */
 #endif // end of core_devices

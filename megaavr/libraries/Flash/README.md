@@ -9,8 +9,9 @@ This library provides methods write to the application section of flash from wit
 
 This now works with OR without the bootloader - without the bootloader, it relies upon the tools submenu for flash writing being configured appropriately. In all cases if enabled, the first page of flash is marked as "bootloader" (though the vectors are moved back down to starting at 0 prior to setup being called - it's not used like that); this is required for any self programming because if `BOOTSIZE = 0` the entire flash is considered "bootloader" section, which can never be written by self programming. For menu options providing specified amounts of writable flash at high addresses, that is made available by configuring `CODESIZE` fuse. Your code must be running from the `APPCODE` section, not the `APPDATA` one. For the "Anywhere" option, no part of the code is marked `APPDATA` - it's all `APPCODE`, and in order to make that writable, nearly the same trick that was used for bootloader-dependent version - an spm z+ ret sequence is created and given attributes such that it will be placed in the lowest page of flash (recall that that's bootloader section) containing inline assembly with a label which the compiler is miraculously able to pick up on and direct a call instruction to.
 
-I've created an issue for discussion of UX and what the API should be like here:
-[Feedback](https://github.com/SpenceKonde/DxCore/issues/57)
+**IMPORTANT** This library is for Dx-series parts only. A different library AND DIFFERENT API is needed for Ex-series parts; it is not possible to present the same API on the two types of NVMCTRL with the same API, because they have fundamentally different capabilities. The Dx-series cannot write by page unless that is simulated in software, it can only write by byte. The Ex-series on the other hand can only write by page.
+
+**There are no plans to adapt this flash library to Ex-series** the Flash.h used on megaTinyCore is a better starting point. but it depends on optiboot, and I never used it because I didn't really understand it.
 
 ## Warnings
 This is new, and there ~may~ will be future changes to the API.
@@ -24,16 +25,12 @@ The `FLASHWRITE_FAIL` code is returned when we actually attempt interacting with
 ## Feedback Wanted
 Please let me know if this does or does work out for you - In addition to bug reports which I always welcome (though I think this may be free of true bugs - though it most definitely has plenty of "features" that could be alarming to the uninitiated, and it is "the responsibility of the user to ensure that" many considerations are observed. I am particularly interested in whether the API provided is fit for purposem, and if not, what I should to to fix it.
 
-## Core reserved area
-The core reserves the top page of flash unless disabled from the tools menu (1.4.5+) Future updates planned for the 1.5.0 timeframe require a block in the top corner of the flash in order to permit specific optimizations.
-(it will contain a number of variant-specific pin mapping information, where knowing where the values are, and where the boundaries of the low byte allows several key optimizations not otherwise possible - this speeds up turning on and off PWM and will be key to avoiding undue overhead for giving TCD the same treatment as TCA when we get working hardware.
-
 ## Usage Guide
 
 ### Checking Compatibility
 In order for this to work, if using Optiboot, the version of optiboot must be since the 1.3.0 releases. The `Flash.checkWritable()` function can be used to determine if we can write to flash with the current configuration on the part. If it fails, you need to correct this, probably by burning the new bootloader.
 
-If not using optiboot, there are requirements of the fuse settings, though these should be automatically handled.
+If not using optiboot, there are requirements of the fuse settings, though these should be automatically handledas long as the correct option is selected in the tools menu.
 
 All functions provided assume that, if using a bootloader, the bootloader is compatible. Otherwise it may behave in an unexpected manner (with an incompatible bootloader, it will probably just reset; without any bootloader, it will just return the error code). So, unless certain that the bootloader currently installed is from 1.3.0 (1/18/2021 or later - earlier 1.3.0-dev bootloaders don't support this) call this to make sure.
 
@@ -133,7 +130,7 @@ switch (result) {
 Return Values:
 FLASHWRITE_OK           = 0x00 // Bootloader present and supports this.
 FLASHWRITE_OLD          = 0x01 // If bootloader version is old, we know it won't work.
-FLASHWRITE_NOBOOT       = 0x10 // No bootloader was found (Returned only if USING_OPTIBOOT = 1; the most liekly reason to see this is a third party IDE that requires manually specifying defines like this.
+FLASHWRITE_NOBOOT       = 0x10 // No bootloader was found (Returned only if USING_OPTIBOOT = 1; the most likely reason to see this is a third party IDE that requires manually specifying defines like this.
 FLASHWRITE_DISABLED     = 0x02 // Bootloader would support it, but it was explicitly disabled (APP_NOSPM)
 FLASHWRITE_UNRECOGNIZED = 0x03 // Some weird unrecognized bootloader is installed
 FLASHWRITE_FUSES        = 0x14 // Fuse settings do not support writing to flash without a bootloader (non-Optiboot configurations only).
@@ -303,7 +300,7 @@ In the event that an attempted flash write to a board with a compatible bootload
 
 ```c++
 0x80 // FLASHWRITE_FAIL - this is never returned as an error code - bitwise and with this to check for any of these errors.
-0x81 // FLASHWRITE_FAIL_INVALID - Invalid Command. Whatever command was wrtten to the NVMCTRL.CTRLA register was invalid. Likely using this library on an unsupported part.
+0x81 // FLASHWRITE_FAIL_INVALID - Invalid Command. Whatever command was written to the NVMCTRL.CTRLA register was invalid. Likely using this library on an unsupported part.
 0x82 // FLASHWRITE_FAIL_PROTECT - Write Protect
 0x83 // FLASHWRITE_FAIL_COLLISION - Command Collision (command not written to 0 between commands. This should not be possible using this library!)
 0x84 // FLASHWRITE_FAIL_ONGOING - Ongoing Programming (Not in datasheet, but mentioned in io headers. Likely for future use when RWW is supported

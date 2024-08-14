@@ -24,7 +24,7 @@
 #include <Arduino.h>
 
 #if (__AVR_ARCH__ < 100)
-  #error "This version of the library only supports AVRxt parts (tinyAVR 0/1/2-series, megaAVR 0-series and the AVR DA/DB/DD parts. For tinyNeoPixel, for classic AVR, get from ATTinyCore package"
+  #error "This version of the library only supports AVRxt parts (tinyAVR 0/1/2-series, megaAVR 0-series and the AVR DA/DB/DD/EA parts. For tinyNeoPixel for classic AVR, get from ATTinyCore package"
 #endif
 
 // The order of primary colors in the NeoPixel data stream can vary
@@ -50,11 +50,11 @@
 // 0bWWRRGGBB for RGBW devices
 // 0bRRRRGGBB for RGB
 
-// RGB NeoPixel permutations; white and red offsets are always same
+// RGB NeoPixel permutations:
 // Offset:         W          R          G          B
 #define NEO_RGB  ((0 << 6) | (0 << 4) | (1 << 2) | (2))
 #define NEO_RBG  ((0 << 6) | (0 << 4) | (2 << 2) | (1))
-#define NEO_GRB  ((1 << 6) | (1 << 4) | (0 << 2) | (2))
+#define NEO_GRB  ((1 << 6) | (1 << 4) | (0 << 2) | (2)) // GRB is very common
 #define NEO_GBR  ((2 << 6) | (2 << 4) | (0 << 2) | (1))
 #define NEO_BRG  ((1 << 6) | (1 << 4) | (2 << 2) | (0))
 #define NEO_BGR  ((2 << 6) | (2 << 4) | (1 << 2) | (0))
@@ -94,39 +94,63 @@
 // 400 kHz neopixels are virtually absent from the market today
 // They are not supported.
 
-// These two tables are declared outside the Adafruit_NeoPixel class
-// because some boards may require oldschool compilers that don't
-// handle the C++11 constexpr keyword.
-
 /* A pre-calculated 8-bit sine look-up table stored in flash for use
 with the sine8() function. This is apparently of use in some animation
-algorithms. If __AVR_ARCH__==103, then all of the flash is memory
-mapped, and we can simply declare it const, access it like a
-normal variable, and it won't be copied to RAM.
+algorithms. Similarly, we have a pre-calculated gamma correction table
+for gamma8() and gamma32(). These are treated the same way.
 
-AVRxt devices with too much flash for all of it to be mapped
-which includes the AVR64Dx and AVR128Dx parts. DxCore defines a
-.section for the area of PROGMEM that is mapped by default, and
-a PROGMEM_MAPPED macro. A variable declared const PROGMEM_MAPPED can
-be accessed normally, but will be stored in the flash and not copied to RAM.
+If __AVR_ARCH__ == 103, then we are either on a modern tinyAVR or a
+megaAVR 0-series. So ALL the flash is mapped to ram, and we can just
+treat it like any constant variable and it won't be copied to ram!
+
+If __AVR_ARCH__ == 102 or 104 it is a modern AVR with either 64 or 128k
+of flash (respectively). Parts with more flash will have higher AVR_ARCH
+mi,bers  These map only 32k of flash at a time.
+
+DxCore defines a .section for the 2 or 4 sections of flash (if/when larger parts
+are released, it will define more of them) that can be mapped depending on the
+FLMAP bitfield in NVMCTRL.CTRLB, so that data can be forced into a given section.
+It defines the PROGMEM_MAPPED macro as an alias for the flash section that is
+mapped to data space. Hence, we can declare the table declared const PROGMEM_MAPPED.
+It can then be accessed normally, but will be stored in the flash and not copied to
+RAM.
+
+Finally, if neither of those are an option - it gets declared with PROGMEM and
+accessed with pgm_read_byte_near(). This option should *never* be exercised, as
+all current and announced parts have some way to map the flash.
+
+As I read the datasheet, the theoretical speeds for this access are comparable
+for the case of random access, and slower for non-random access (because there is
+an LD X/Y/Z+, LD -X/Y/Z and LDD Y/Z + q instruction, but LPM can only use Z and
+has no support for displacement and no support for postincrement and predecrement.
+For normal variable access the optimizer can use those if appropriate. However
+pgm_read_byte_near() and it's ilk are wrappers around macros written in ASM.
+They are hence optimization-proof.
 
 Finally, if neither of those are an option - it gets declared with PROGMEM
 
 
-   Copy & paste this snippet into a Python REPL to regenerate:
+To generate the sine table, execute in python:
+
 import math
 for x in range(256):
     print("{:3},".format(int((math.sin(x/128.0*math.pi)+1.0)*127.5+0.5))),
     if x&15 == 15: print
+
+To generate the gamma table, execute in python:
+
+import math
+gamma=2.6
+for x in range(256):
+    print("{:3},".format(int(math.pow((x)/255.0,gamma)*255.0+0.5))),
+    if x&15 == 15: print
 */
-#if (__AVR_ARCH__==103)
-  // All out flash is mapped - yay!
+
+#if (__AVR_ARCH__ == 103) // All flash mapped, const variables always left in flash.
   static const uint8_t _NeoPixelSineTable[256] = {
-#elif defined(PROGMEM_MAPPED)
-  // Some of it is - but we can put stuff there - yay!
+#elif defined(PROGMEM_MAPPED) // flash > 48k, so only a 32k window is mapped, so put tables there
   static const uint8_t PROGMEM_MAPPED _NeoPixelSineTable[256] = {
-#else
-  // Back to progmem...
+#else // fall back mode - this should never happen on any released or announced device
   static const uint8_t PROGMEM _NeoPixelSineTable[256] = {
 #endif
   128,131,134,137,140,143,146,149,152,155,158,162,165,167,170,173,
@@ -146,22 +170,11 @@ for x in range(256):
    37, 40, 42, 44, 47, 49, 52, 54, 57, 59, 62, 65, 67, 70, 73, 76,
    79, 82, 85, 88, 90, 93, 97,100,103,106,109,112,115,118,121,124};
 
-/* Similar to above, but for an 8-bit gamma-correction table.
-   Copy & paste this snippet into a Python REPL to regenerate:
-import math
-gamma=2.6
-for x in range(256):
-    print("{:3},".format(int(math.pow((x)/255.0,gamma)*255.0+0.5))),
-    if x&15 == 15: print
-*/
-#if (__AVR_ARCH__==103)
-  // All our flash is mapped - yay!
+#if (__AVR_ARCH__ == 103)// All flash mapped, const variables always left in flash.
   static const uint8_t _NeoPixelGammaTable[256] = {
-#elif defined(PROGMEM_MAPPED)
-  // Some of it is - but we can put stuff there - yay!
+#elif defined(PROGMEM_MAPPED) // flash > 48k, so only a 32k window is mapped, so put tables there
   static const uint8_t PROGMEM_MAPPED _NeoPixelGammaTable[256] = {
-#else
-  // Back to progmem...
+#else // fall back mode - this should never happen on any released or announced device
   static const uint8_t PROGMEM _NeoPixelGammaTable[256] = {
 #endif
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
@@ -196,6 +209,9 @@ class tinyNeoPixel {
   void
     begin(void),
     show(void),
+    #if (PROGMEM_SIZE > 4096UL)
+    show(uint16_t leds),
+    #endif
     setPin(uint8_t p),
     setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b),
     setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b, uint8_t w),
@@ -204,7 +220,8 @@ class tinyNeoPixel {
     setBrightness(uint8_t b),
     clear(),
     updateLength(uint16_t n),
-    updateType(neoPixelType t);
+    updateType(neoPixelType t),
+    updateLatch(uint16_t us);
   uint8_t
    *getPixels(void) const,
     getBrightness(void) const;
@@ -227,7 +244,7 @@ class tinyNeoPixel {
              output is often used for pixel brightness in animation effects.
   */
   static uint8_t    sine8(uint8_t x) { // 0-255 in, 0-255 out
-    #if (__AVR_ARCH__==103 || defined(PROGMEM_MAPPED))
+    #if (__AVR_ARCH__ == 103 || defined(PROGMEM_MAPPED))
       return _NeoPixelSineTable[x];
     #else     // We had to put it in PROGMEM, and that's how we get it out
       return pgm_read_byte(&_NeoPixelSineTable[x]); // 0-255 in, 0-255 out
@@ -246,7 +263,7 @@ class tinyNeoPixel {
              need to provide your own gamma-correction function instead.
   */
   static uint8_t    gamma8(uint8_t x) {
-    #if (__AVR_ARCH__==103 || defined(PROGMEM_MAPPED))
+    #if (__AVR_ARCH__ == 103 || defined(PROGMEM_MAPPED))
       return _NeoPixelGammaTable[x];
     #else
       return pgm_read_byte(&_NeoPixelGammaTable[x]);
@@ -294,10 +311,10 @@ class tinyNeoPixel {
              control you'll need to provide your own gamma-correction
              function instead.
   */
-  static uint32_t   gamma32(uint32_t x);
+  static uint32_t gamma32(uint32_t x);
 
   #if (!defined(MILLIS_USE_TIMERNONE) && !defined(MILLIS_USE_TIMERRTC) && !defined(MILLIS_USE_TIMERRTC_XTAL) && !defined(MILLIS_USE_TIMERRTC_XOSC))
-    inline bool canShow(void) { return (micros() - endTime) >= 50L; }
+    inline bool canShow(void) { return (micros() - endTime) >= (uint32_t) latchTime; }
   #else
     inline bool canShow(void) {return 1;} // we don't have micros here;
   #endif
@@ -309,7 +326,10 @@ class tinyNeoPixel {
     begun;         // true if begin() previously called
   uint16_t
     numLEDs,       // Number of RGB LEDs in strip
-    numBytes;      // Size of 'pixels' buffer below (3 or 4 bytes/pixel)
+    numBytes,      // Size of 'pixels' buffer below (3 or 4 bytes/pixel)
+    latchTime;     // Latch waiting period in us varies from 6 (contrary
+                   // to datasheet) for original 2812's, all the way to 250 us.
+                   // 50us is what the originals claim. Clones copied that, and some made it even longer.
   uint8_t
     pin,           // Output pin number (-1 if not yet set)
     brightness,

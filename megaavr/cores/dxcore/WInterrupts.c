@@ -286,7 +286,7 @@
       "icall"             "\n\t" // call their function, which is allowed to shit on any upper registers other than 28, 29, 16, and 17.
       "rjmp AIntLoop"     "\n\t" // Restart loop after.
     "AIntEnd:"            "\n\t" // sooner or later r17 will be 0 and we'll branch here.
-      // with EARLYCLEAR variant, we don't need to do anythin other than cleaning up working registers - flags already cleared.
+      // with EARLYCLEAR variant, we don't need to do anything other than cleaning up working registers - flags already cleared.
       "pop   r31"         "\n\t" // clean up a million registers
       "pop   r30"         "\n\t"
       "pop   r29"         "\n\t"
@@ -355,7 +355,7 @@
  * For each of the ones that we do have a flag for, we load that pointer into Z with postincrement, subtract 0 from it and look at zero flag to make sure it's not null.
  * assuming it's not, we fire icall to call the user function. Either way we then repeat the loop until out of flags.
  * which at latest will happen when we're also at end of the ports intfunc array....
- * Then, with the initial flags still in 15 and the the VPORT adderess in r16 copy that once more to a pointer register, 0 the high byte, and store the flags value we read to clear it.
+ * Then, with the initial flags still in 15 and the the VPORT address in r16 copy that once more to a pointer register, 0 the high byte, and store the flags value we read to clear it.
  * then it's just a matter of making sure we pop everything we pushed onto the stack in the reverse order, including r16 followed by the reti to exit the interrupt..
 */
 

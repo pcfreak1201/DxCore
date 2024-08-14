@@ -94,7 +94,7 @@ Include guard and include basic libraries. We are normally including this inside
     #define analogChannelToDigitalPin(p)         ((p) > 31        ?  NOT_A_PIN        : ((p) < 8         ? ((p) + PIN_PD0) :  (p) > 21  ? (p) - 20    : (((p) == 16       ? PIN_PF0)    : ((p) == 17  ? PIN_PF1 : NOT_A_PIN))))
   #endif
 #else /* If we ARE using a bootloader, we can't be sure if MVIO is enabled :-( */
-  #define IS_MVIO_ENABLED() ((FUSE.SYSCFG1 & 0x01) == 0)
+  #define IS_MVIO_ENABLED() ((FUSE.SYSCFG1 & 0x18) == 0x10)
   #define digitalPinToAnalogInput(p)             ((p) >= PIN_PD0  ? (((p) < PIN_PF0)  ? (p) - PIN_PD0    : ((p) <= PIN_PF1 ? ((p) - 4)       : NOT_A_PIN))           : (((p) > PIN_PA1 && !(IS_MVIO_ENABLED() && (p) >= PIN_PC0)) ? ((p) + 20) : NOT_A_PIN))
   #define analogChannelToDigitalPin(p)  ((p) > (IS_MVIO_ENABLED() ? 27 : 31)          ? NOT_A_PIN        : ((p) < 8        ? ((p) + PIN_PD0) : (p) > 21 ? ((p) - 20) : (((p) == 16 ? PIN_PF0) : ((p) == 17                        ? PIN_PF1    : NOT_A_PIN))))
 #endif
@@ -178,8 +178,6 @@ Include guard and include basic libraries. We are normally including this inside
 // TWI 0
 #define PIN_WIRE_SDA                    PIN_PA2
 #define PIN_WIRE_SCL                    PIN_PA3
-#define PIN_WIRE_SDA_PINSWAP_1          PIN_PA2
-#define PIN_WIRE_SCL_PINSWAP_1          PIN_PA3
 #define PIN_WIRE_SDA_PINSWAP_2          PIN_PC2
 #define PIN_WIRE_SCL_PINSWAP_2          PIN_PC3
 #define PIN_WIRE_SDA_PINSWAP_3          PIN_PA0

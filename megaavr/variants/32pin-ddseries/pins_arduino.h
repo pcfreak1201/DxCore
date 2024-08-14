@@ -91,7 +91,7 @@ Include guard and include basic libraries. We are normally including this inside
         #   # #   #  ### #  #   ###   ##*/
 // If you change the number of pins in any way or if the part has ADC on different pins from the board you are adapting
 // you must ensure that these will do what they say they will do.
-// that bit about the 4 ADC ADC channels on PORTC not worling with MVIO enabled is ugly to handle.
+// that bit about the 4 ADC ADC channels on PORTC not working with MVIO enabled is ugly to handle.
 #if !defined(USING_OPTIBOOT) || defined(ASSUME_MVIO_FUSE) /* When not using a bootloader, we know if MVIO is enabled because the fuse is set on upload */
   #if defined(MVIO_ENABLED) /* MVIO disables ADC on PORTC */
     #define IS_MVIO_ENABLED()                    (1)
@@ -186,10 +186,8 @@ Include guard and include basic libraries. We are normally including this inside
 // TWI 0
 #define PIN_WIRE_SDA           PIN_PA2
 #define PIN_WIRE_SCL           PIN_PA3
-#define PIN_WIRE_SDA_PINSWAP_1 PIN_PA2
-#define PIN_WIRE_SCL_PINSWAP_1 PIN_PA3
-#define PIN_WIRE_SDA_PINSWAP_2 PIN_PC2
-#define PIN_WIRE_SCL_PINSWAP_2 PIN_PC3
+#define PIN_WIRE_SDA_PINSWAP_2 PIN_PC2 /* Errata warning */
+#define PIN_WIRE_SCL_PINSWAP_2 PIN_PC3 /* Errata warning */
 #define PIN_WIRE_SDA_PINSWAP_3 PIN_PA0
 #define PIN_WIRE_SCL_PINSWAP_3 PIN_PA1
 

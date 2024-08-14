@@ -10,13 +10,15 @@ Following that issues known or believed to impact all parts, then issues that ar
 
 Issue                          | Severity | Source    | 128DA   | 64DA    | 32DA    |  128DB  | 64DB    | 32DB    | 64DD    | 32DD    | 16DD    | Notes                                       |
 --------------------------------------|---|-----------|---------|---------|---------|---------|---------|---------|---------|---------|---------|---------------------------------------------|
-Violating maximum Vdd slew can damage | * |           | LIKELY  | LIKELY  | LIKELY  | YES     | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | Probably impacts all Dx-series parts.       |
-Fully async pins have dead-time.      | 1 | DxCore    | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | Likely impacts all modern AVRs              |
-SPM does not ignore low bit of address| 1 | DxCore    | YES     | YES     | Yes     | YES     | YES     | YES     | LIKELY  | LIKELY  | LIKELY  | Unacknowledged by Microchip.                |
+Violating maximum Vdd slew can damage | * | Other     | LIKELY  | LIKELY  | LIKELY  | YES     | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | Probably impacts all Dx-series parts.       |
+Rare write sequence loses write       |wtf| Microchip | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | On EA (latest) and t412 (oldest)            |
+TWI0 MUX option 2 does not work       | 4 | Microchip | No      | No      | No      | No      | No      | No      | UNCLEAR | UNCLEAR | UNCLEAR | Possible new bug? Behavior inconsistent, baffling |
+Fully async pins have dead-time.      | 1 | DxCore    | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | Likely impacts all modern AVRs            |
+SPM does not ignore low bit of address| 1 | DxCore    | YES     | YES     | Yes     | YES     | YES     | YES     | LIKELY  | LIKELY  | LIKELY  | Likely impacts all Dx-series parts.       |
 TCB async slower than sync events     | 3 | DxCore    | LIKELY  | LIKELY  | LIKELY  | YES     | LIKELY  | LIKELY  | LIKELY  | LIKELY  | LIKELY  | Probably impacts all modern AVRs.           |
-Multipage erase can erase protected   | 1 | Microchop | YES     | YES     | YES     | YES     | YES     | YES     | YES     | YES     | YES     | Extreme corner case                         |
-TCD0 halt+wait for SW with CMPA = 0   | 1 | Microchip | YES     | YES     | YES     | YES     | YES     | YES     | YES     | YES     | YES     | Broken in dual slope or CMPA not used       |
-Flash endurance 1k, not 10k cycles    | 3 | Microchip | YES     | YES     | YES     | YES     | YES     | YES     | Yes *   | YES *   | YES *   | On DD-series 10k rewrites never claimed     |
+Multipage erase can erase protected   | 1 | Microchip | YES     | YES     | YES     | YES     | YES     | YES     | YES     | YES     | YES     | Extreme corner case                        |
+TCD0 halt+wait for SW with CMPA = 0   | 1 | Microchip | YES     | YES     | YES     | YES     | YES     | YES     | YES     | YES     | YES     | Broken in dual slope or CMPA not used     |
+Flash endurance 1k, not 10k cycles    | 3 | Microchip | YES     | YES     | YES     | YES     | YES     | YES     | Yes *   | YES *   | YES *   | 1k spec is "worst case" (125C).            |
 TCA restart resets counter direction  | 2 | Microchip | YES     | YES     | YES     | YES     | YES     | YES     | No      | No      | No      | Restart "should" **NOT** reset direction    |
 TCB single-shot EDGE bit              | 3 | Microchip | Kinda   | Kinda   | Kinda   | YES     | YES     | YES     | No      | No      | No      | Datasheet clarification/change              |
 TCB CCMPH/CCMPL act as 16-bit in PWM  | 2 | Microchip | YES     | YES     | YES     | YES     | YES     | YES     | No?     | No?     | No?     | Has impacted all pre-DD modern AVRs         |
@@ -52,7 +54,7 @@ OPAMP power consumption 3x higher     | 2 | Microchip | -       | -       | -   
 OPAMP IRSEL bit read-only             | 2 | Microchip | -       | -       | -       | A4 **   | -       | -       | -       | -       | -       |          ... was not a good look. Fast fix. |
 Vector table is wrong                 | 9 | AVRFreaks | -       | -       |RECALLED | -       | -       | -       | -       | -       | -       | Impacted chips recalled, incident hushed up |
 
-`*` - When the DD's were released, Microchip had already decided that the flash endurance to be claimed was 1k not 10k, so the datasheet never claimed 10k.
+`*` - When the DDs were released, Microchip had already decided that the flash endurance to be claimed was 1k not 10k, so the datasheet never claimed 10k.
 `**` - This revision occurred extremely close to release. If impacted parts made it out of the gates of the Microchip fab, their numbers are very small!
 
 Kinda - The change or bug is present on those parts - but here, it is behaving "correctly". The three issues here include two datasheet clarifications (flash endurance and TCB EDGE) - these get changed to Kinda when the actual datasheet is updated to reflect the change, and once they've been propagated to all Dx-series datasheets, they'll go in a different section, and one datasheet clarification + errata (TCA restart) where the parts worked as documented, but they decided the way it worked was dumb and that needed to change it.
@@ -69,8 +71,8 @@ From Arduino perspective. Totally subjective and my own judgement.
 4. No viable workaround, and could compromise the viability of the part for applicable use cases
 5. Critical. The device is not usable for common tasks. These have all been fixed very rapidly, though there is no evidence of the impacted parts having been recalled other than an absence of impacted parts in the wild.
 9. The device is unusable for any task, and was recallalled when Microchip became aware of it. Supposedly they will replace impacted parts, in the unlikely event that anyone still has them
-
-The issues I consider 4's are the two remapping issues, one of which is impacting all DA/DB (TCD), while the other only effects AVR128DA64, and based on the chatter I hear among users, the increase current at cursed voltages on DB is leading many people to consider these parts unusable for their application, so that is also a 4 now as well. The most-recently-added portmux issue, that SPI doesn't work on PB4-7 on parts that don't have PB6 and PB7 (ie, the 48-pin parts) has a 1, but deserves a 0. What the hell good was an SPI mapping that didn't have SCK?!
+`wtf` - Obviously, this must be very rarely encountered, since this issue has been all around us since 2016 and nobody has figured it out until now. It's one of the scariest erratumds to read - the first time through.
+The issues I consider 4s are the two remapping issues, one of which is impacting all DA/DB (TCD), while the other only effects AVR128DA64, and based on the chatter I hear among users, the increase current at cursed voltages on DB is leading many people to consider these parts unusable for their application, so that is also a 4 now as well. The most-recently-added portmux issue, that SPI doesn't work on PB4-7 on parts that don't have PB6 and PB7 (ie, the 48-pin parts) has a 1, but deserves a 0. What the hell good was an SPI mapping that didn't have SCK?!
 
 Alas - almost three after the release of the DA-series, we have seen only the AVR128DB get a new silicon rev that fixed a significant number of issues.
 
@@ -96,16 +98,36 @@ Note that the only matters if you care about 1.5mA power consumption. Of course,
 This suggests some things about the internal voltage reglator....
 
 ### Extremely rapidly rising Vdd can cause damage
-This was apparently discovered by customers who don't know the meaning of "board level decoupling", and built devices with just the originally spec'ed 0.1uF caps, and supplied power by shorting the supply rails to a 5v supply with lots of capacitance through very short wires/traces (think thumb-drive form factor, plugged straight into a USB port on a laptop, which will typically have the USB ports directly on the motherboard, with a bunch of high value, low ESR capacitors across the 5v rail. The voltage could ramp up so quickly that the internal regulator could overshoot the target voltage and damage the chip. Not using board-level decoupling caps is inconsistent with electronics best practices. I think the only boards I've ever made without at least 4.7uF on the board were the Ultramini's that would plug into a DIP socket, and even those I put 1uF on...
+This was apparently discovered by a customer who don't know the meaning of "board level decoupling", and built devices with just the originally spec'ed 0.1uF caps, and supplied power by shorting the supply rails to a 5v supply with lots of capacitance through very short wires/traces (specifically, it was a thumb-drive form factor then plugged straight into a laptop USB port, shorting the rail to laptop +5v. There's USB current limiting, but it is slow to respond, because it's designed to tolerate the inrush current of up to 22uF of capacitance. On a laptop (this is much less of a problem on desktops, because there are usually wires (with non-zero parasitic inductance and resistance) the the USB ports are directly on the motherboard, with a bunch of high value, low ESR capacitors across the 5v rail. So the near-infinite capacitance of the laptop The voltage could ramp up so quickly that the internal regulator could overshoot the target voltage and damage the chip. Not using board-level decoupling caps is inconsistent with electronics best practices. I think the only boards I've ever made without at least 4.7uF on the board were the Ultramini's that would plug into a DIP socket, and even those I put 1uF on...
 
-I speculate that this is what led to the next version of the datasheet specifying 1.0 uF caps instead of 0.1uF caps for decoupling - these would be sufficient to slow down the slew rate down. But that wasn't really satisfactory, and they revised the datasheet again to specify a 1uF cap on the board plus 0.1uF caps on each supply pin.
+I speculate that this is what led to the next version of the datasheet specifying 1.0 uF caps instead of 0.1uF caps for decoupling - these would be sufficient to slow down the slew rate down just enough. But that wasn't really satisfactory (one imagines that other customers or testing found that the chips could crash when the load increased for example from turning on a load driven by output pins), and they revised the datasheet again to specify a 1uF cap on the board plus 0.1uF caps on each supply pin.
 
+Reporting of this issue followed a complicated path, and this is pieced together from statements from multiple people involved and observing the changes to the datasheet.
+
+### TWI0 MUX 2 option on DD
+The ALT2 mux option may be broken on DD-series parts. Inconsistent behavior has been seen in testing. Sometimes it will work, other times it will drive the SDA line low (to generate the first start condition) and then do nothing more.
+
+**Partial workaround**
+Use another TWI mapping option, and enable the SMBUS 3.0 levels using the Wire.configSpecialOptions()
 
 ### BOD registers not reset if UPDI enable
 *If the UPDI is enabled, the VLMCTRL, INTCTRL, and INTFLAGS registers in BOD will not be reset by other reset sources than POR*
 
 "If the UPDI is enabled" means that the UPDI peripheral is actually running. Only particularly relevant because it applies when the programmer resets the chip. So those registers are not reset until the programming session has ended and the chip is powercycled. Could be absolutely maddening to figure out in the event that you found yourself in this corner case, but very few people will trip over it...
 
+### Write Operation Lost if Consecutive Writes to Specific Address Spaces
+*An ST/STD/STS instruction to address > = 64 followed by an ST/STD instruction to address < 64 or
+SLPCTRL.CTRLA will cause loss of the last write.*
+
+**Work Around**
+* To avoid loss of write to I/O space either:
+  * Insert a NOP instruction before writing to addresses below 0x0040 - OR -
+  * Use the OUT instruction instead of ST/STD
+* SLPCTRL.CTRLA
+  * Insert a NOP instruction before writing to SLPCTRL.CTRLA
+
+Take a minute to read that again if this is the first time you've seen it. At first glance, this bug is SCARY AS HELL. But obviously, in reality, it is not, because this errata is present on the first modern AVRs released, the 412 and company. And the errata for the most recent, the EA-series. It is all but certain that every tinyAVR has the same bug, and the mega0's. The Dx's may be spared - but I doubt it (there are two branches of the AVR family tree, yasee, Dx-series and everything else).
+The more you think about it the wackier it seems that anyone would ever encounter the bug. First the window is narrow - a single clock cycle. The pattern is also odd. ST/STD to dataspace address > 0x0040; Then, you *immediately, in the next clock cycle* are writing to a non-"special" memory address below 0x60 (why 0x60? Bug probably arises from bungled handling of IO space. IO space is addressed from 0x00 through 0x3F with in and out, as always, but this is now mapped to the dataspace at 0x0000-0x003F, while on classic, the *working registers* were *mapped to the dataspace* at 0x0000 - 0x001F, and the I/O registers were located at 0x20-0x5F. And xMega had this feature that made access to IO space faster via if you were pointing to an I/O register. It's a dumb feature, we didn't get it, you don't need it, and if you find yourself accessing the IO space with a pointer you need to stop and ask wtf you're doing. Same goes for using STS to access the IO space. Out and STS both require the address known at compile time, STS just takes twice as much flash and twice as many clocks and is just bad.
 
 ### Vector Table is Wrong on early AVR32DA
 Remember how the ATmega808 and 809 had 4-byte interrupt vectors in hardware, but for a while the toolchain tried to generate 2-byte vector tables for it and interrupts didn't work? Well this was worse: It was the other way around! Not only does the toolchain generate binaries that don't work, it cannot be fixed with a toolchain update, because the hardware only did a 2-byte vector which couldn't reach the whole flash. **Impacted AVR32DA parts are not usable**. They were recalled, and were only available for a short time and if anyone has impacted parts, they can get replacements through support - not that I think it would be worth the it would take  according to a Microchip employee posting on the AVRFreaks forum. It appears that they have decided to pretend this never happened - the fact that they shipped product with a bug that renders them completely unusable is still not mentioned on the silicon errata (and was fixed without incrementing the silicon revision - does that mean that 2-byte vs 4-byte vectors is set at factory calibration? Or that they were just trying to hush this one up). It really raises some questions about their test procedures (They produced a new chip, packaged them, and shipped them, advertising them as fit for use in life safety critical applications without having tested even trying to run the equivalent of blink on them? - AND it was a screwup that they did the opposite of on the smallest flash version of the prior product line, so they should have been specifically checking for this. It does seem to have woken up their QA people - ever since then, there have been more delays, and shorter errata lists for new parts). Effected chips were pulled and did not become available again for several months. If you bought DA32 chips in the fall of '20 and they don't work right, this is why
@@ -211,7 +233,7 @@ My only thought here is "If SPM instruction requires word aligned access, why no
 ### Pre-set fuses don't match datasheet
 The fuses, as supplied (on AVR128DA, Rev. A6 silicon, at least) do not match the configuration described in the datasheet. Generally speaking, unused bits are set to 1 instead of 0 (except in a few cases), and in the case of OSCCFG, a "reserved" combination is selected.
 * BODCFD is set to 0x10, per datasheet this is an invalid BOD level setting. Should not impact functionality, as BOD is disabled by the low 5 bits, and the high bits would be reset if you enabled BOD anyway.
-* OSCCFG is set to 0x78, per datasheet low nybble should be 0 or 1, high nybble all 0's (unused). All options other than 0 and 1 for low 4 bits are marked reserved. I guess bit 3 doesn't matter so much.
+* OSCCFG is set to 0x78, per datasheet low nybble should be 0 or 1, high nybble all 0s (unused). All options other than 0 and 1 for low 4 bits are marked reserved. I guess bit 3 doesn't matter so much.
 * SYSCFG0 is set to 0xF2 instead of 0xC8. While we might not care what CRC algorithm the disabled CRC check is using, the fact that it disables reset is certainly disconcerting to discover...
 * SYSCFG1 is set to 0xF8 instead of 0x00 - just a case of unused bits set 1 instead of 0.
 
@@ -228,10 +250,10 @@ For "intened behavior", it's bloody stupid, and the resulting behavior is thorou
 The ADC has a dramatically higher offset error in single-ended mode than expected: -3 mV. This implies that all readings would be 12 LSB lower than expected at 12 bit accuracy... when the spec is 1.25 LSB. This is pretty ugly for a headline feature! Only mentioned for the 128 DB, and noted as fixed in the A5 rev - A4 parts barely made it out the door - they got this one fixed in a real hurry, as they should.
 
 ### OPAMP IRSEL bit read-only
-The opamp IRSEL (Input Range SELect) is read-only; input range is always rail-to-rail. Wasn't in any other sizes, and got fixed FAST. A4's are rare and hard to find.
+The opamp IRSEL (Input Range SELect) is read-only; input range is always rail-to-rail. Wasn't in any other sizes, and got fixed FAST. A4s are rare and hard to find.
 
 ### OPAMPs consume more power than expected
-The opamp modules consume 3x the expected (from datasheet) power. Wasn't in any other sizes, and got fixed FAST. A4's are rare and hard to find.
+The opamp modules consume 3x the expected (from datasheet) power. Wasn't in any other sizes, and got fixed FAST. A4s are rare and hard to find.
 
 ### PLL Status bit on DA and DB-series not set if not requested by a peripheral
 Yeah, it always reads 0 unless a peripheral is using it. Pretty much defeats the purpose of that bit. Except that with only a single peripheral that can use it this bit doesn't matter much anyway. Makes you wonder if it was originally supposed to be able to clock something else... though I don't really know what that might be.
@@ -264,7 +286,7 @@ Marked "YES" for the DD-series because although their datasheet always described
 
 
 ### Flash endurance 1k, not 10k cycles (Datasheet clarification)
-This is a "datasheet clarification" instead of an errata, which I take to mean that they don't plan to fix this. Which seems sort of surprising, frankly, if the DD's are going to be released this fixed, when you just know most of the errata here are unlikely to ever get a correction. Maybe the DD's are going to get released with 1k flash write endurance, and they've decided that it's not practical to fix on the DD while keeping word writes?
+This is a "datasheet clarification" instead of an errata, which I take to mean that they don't plan to fix this. Which seems sort of surprising, frankly, if the DDs are going to be released this fixed, when you just know most of the errata here are unlikely to ever get a correction. Maybe the DD's are going to get released with 1k flash write endurance, and they've decided that it's not practical to fix on the DD while keeping word writes?
 
 ### Fully vs Partially async pin behavior inconsistent with datasheet w/rt "dead time"
 The description of fully vs partially async pins in the datasheet is muddled and does not reflect behavior of the silicon.
@@ -272,6 +294,22 @@ The actual behavior I observed is:
 * The dead time is the time after clearing an interrupt flag before it will become set again.
 * At only 2-3 clock cycles (a typical sync delay?), it's not relevant to most cases when actually using interrupts, as the time it takes to enter or exit
 * The dead time is seen on fully async pins, not partially async pins. Likely impacts all parts up to the DD, and may or may not impact the DD-series.
+
+## DU-series
+Issue                          | Severity | Source    | 64DU    | 32DU    | 16DU    | Notes                                       |
+-------------------------------|----------|-----------|---------|---------|---------|---------------------------------------------|
+Part not yet released          | 5        | Microchip | Yes     | Yes     | Yes     | Workaround: Wait until product is released  |
+
+
+Separate from the rest of the Dx-series because most of the bugs seen on other Dx-series are likely fixed, while new errata relating to USB are likely.
+
+## Ex-series
+Issue                          | Severity | Source    | 64EA    | 32EA    | 16EA    |  8EA    | 32EB    | 16EB    | 8EB     | Notes                                       |
+-------------------------------|----------|-----------|---------|---------|---------|---------|---------|---------|---------|---------------------------------------------|
+Part not yet released          | 5        | Microchip | -       | -       | -       | Yes     | Yes     | Yes     | Yes     | Workaround: Wait until product is released  |
+Rare write sequence loses write| wtf      | Microchip | Yes     | Yes     | Yes     | tbd     | tbd     | tbd     | tbd     | Discussed above as likely impacts Dx        |
+Separate from the Dx-series because these parts share little if any errata
+
 
 ## Errata and Datasheets
 Get the most up to date information from Microchip's website. They keep moving files around, so I'm just going to link their product pages.
@@ -281,16 +319,19 @@ Get the most up to date information from Microchip's website. They keep moving f
 
 
 ## Interesting things removed from early io headers
+
+### Dx-series
+
 Between the initial releases of the io headers (eg, `ioavr128da64.h`), and more recent ones, of course, they corrected an assortment of errors, typos, missing information - the usual... And also, it would appear, the accidental inclusion of references to features not described my the datasheet? Nothing **SUPER** interesting, but...
 
-### EVSYS_USEROSCTEST
+#### EVSYS_USEROSCTEST
 
 ```c++
 #define EVSYS_USEROSCTEST  _SFR_MEM8(0x024B)
 ```
 An extra event user... OSCTEST? I wonder what it does! I guess there's only one way to find out, and that's to monitor the system clock carefully with that set, and then trigger the event! The real question is whether it is to test some special oscillator feature... or just test if the oscillator is "safe" at it's current speed by stressing it (and you'd want that to be an event so you can have it executing code maybe? I dunno!)  Someone go try it out and let me know if they can make it do anything....
 
-### CLKCTRL_MULFAC_4x_gc
+#### CLKCTRL_MULFAC_4x_gc
 This next one is the bitfield that controls what the PLL will multiply the input clock by...
 ```c++
 /* Multiplication factor select */
@@ -304,15 +345,15 @@ typedef enum CLKCTRL_MULFAC_enum
 ```
 That last line was removed in later versions, to match the datasheet... but it does indeed work!
 
-#### Thoughts on this and the internal oscillator's 32 MHz option
-This (and the internal oscillator working up to 32 MHz) raises a question - what speed were they originally targeting during design? What if 24 MHz / 48 MHz wasn't the planned maximum? We know the core has a lot of AVRxm DNA - and the xMega's say they run at 32 MHz - say that was the original target, with 64 MHz PLL maximum? Maybe they had to back off to after they found that their process wasn't quite as good as they hoped, that is, under certain temperature and voltage conditions, running at 32 MHz, it didn't give them high enough yields, or they had problems with the upper end of the temperature range... If it had been targeting 32 MHz with a 64 MHz PLL, all of the mutiplication factors would make sense again: 32 MHz x 2 == 64 MHz. 20 MHz like a tinyAVR x 3 = 60, just shy of the maximum... 24 MHz could only go 2x but 48 MHz is a magic speed for USB - and the 4x would get you the maximum 64 MHz from the ever-popular 16 MHz system clock.
+##### Thoughts on this and the internal oscillator's 32 MHz option
+This (and the internal oscillator working up to 32 MHz) raises a question - what speed were they originally targeting during design? What if 24 MHz / 48 MHz wasn't the planned maximum? We know the core has a lot of AVRxm DNA - and the xMega's say they run at 32 MHz - say that was the original target, with 64 MHz PLL maximum? Maybe they had to back off to after they found that their process wasn't quite as good as they hoped, that is, under certain temperature and voltage conditions, running at 32 MHz, it didn't give them high enough yields, or they had problems with the upper end of the temperature range... If it had been targeting 32 MHz with a 64 MHz PLL, all of the multiplication factors would make sense again: 32 MHz x 2 == 64 MHz. 20 MHz like a tinyAVR x 3 = 60, just shy of the maximum... 24 MHz could only go 2x but 48 MHz is a magic speed for USB - and the 4x would get you the maximum 64 MHz from the ever-popular 16 MHz system clock.
 So that's my theory - they designed it in the hopes of being able to do 32 MHz and 64 MHz on the PLL. Then one of two things happened: Either the temperature specs were always this high (125C maximum!) and they realized their process just couldn't produce chips that would run at 32/64 at temperatures well above the boiling point of water at high yield - or they'd been originally targeting more modest temperatures, but in discussions with customers, heard that the customer would rather they lower the maximum speed (because really, nobody uses an 8-bit AVR if they need computational power) to raise the maximum operating temperature. Either way, they then dropped back to 24 MHz and 48 MHz PLL, thus still giving them the specs they needed for the USB functionality on the DU without further clock improvmements. I don't know if that's how it went down, but whyever it's there, I'm glad the 32 MHz internal option exists.
 
 As it happens, at room temperature, I've had no difficulties clocking TCD from the PLL at 4x multiplier.... even when the system is running at 32 MHz (hence, I was getting PWM derived from a 128 MHz clock; attempting the same with a 40 MHz clock proved too much to ask, and, particularly when the duty cycle was changed timer output would randomy skip cycles, though of course 3x multiplier worked. 48 MHz system clock with external clock worked (I haven't played with the PLL there) so a 2:1 overclock on CLK_PER and nearly 3:1 on the PLL, at room temperature with no special steps other than using exetended temperature range parts? That's pretty damned good if you ask me. Clearly the message is that at room temperature, these have a crazy amount of headroom for overclocking, and I have some personal projects that will requiire 32-40 MHz to achieve performance targets. It also works at well below the required minimum input PLL clock speed.
 
 Note that this is not an endorsement of overclocking in production systems; that is foolish and potentially fraudulent depending on claims made to customers. Obviously, in safety critical systems, it would constitute gross negligence.
 
-### AC_POWER_PROFILE3_gc
+#### AC_POWER_PROFILE3_gc
 Analog Comparators had a third option for power profile planned... The higher the option, the lower the power consumption, but the higher the latency. If I had to place a bet on it, my money would be that like the 4x multiplier, the third power profile was removed only from the headers, and that it's still in the silicon - but it may not work so well.
 ```c++
     AC_POWER_PROFILE3_gc = (0x03<<3),  /* Power profile 3 */
@@ -320,4 +361,8 @@ Analog Comparators had a third option for power profile planned... The higher th
 This is once more listed on the AVR DD and EA-series headers, so it looks like they got it sorted out during the intervening time. One imagines that the option is there on DA/DB parts, but just doesn't function correctly.
 
 ### USART_RS485_gm
-Finally, the USART had the two RS485 modes listed, like tinyAVR 0/1-series, instead of just the one. The second mode raised all sorts of quesions about how the chip ought to behave - and was one of those terse-and-useles sections that answers little. If I correctly understand the intent - it was meant to listen to XDIR and only output data when XDIR was in the correct state. So what does it do when the pin transitioned to "no sending" state while it was in the middle of a byte? Is there any answer to that that will result in correct behavior in all applicable use-cases? I think they thought about that one, realized the answer was "probably not" after they re-read what they'd said about it in the datasheets of the parts that had been released a few times, and figured that they'd be better off not supporting that. It is unclear whether the feature is still present in the silicon. On the DA-series I suspect it is, and likely DB as well, as they don't appear to have touched the USART.
+Finally, the USART had the two RS485 modes listed, like tinyAVR 0/1-series, instead of just the one. The second mode raised all sorts of questions about how the chip ought to behave - and was one of those terse-and-useless sections that answers little. If I correctly understand the intent - it was meant to listen to XDIR and only output data when XDIR was in the correct state. So what does it do when the pin transitioned to "no sending" state while it was in the middle of a byte? Is there any answer to that that will result in correct behavior in all applicable use-cases? I think they thought about that one, realized the answer was "probably not" after they re-read what they'd said about it in the datasheets of the parts that had been released a few times, and figured that they'd be better off not supporting that. It is unclear whether the feature is still present in the silicon. On the DA-series I suspect it is, and likely DB as well, as they don't appear to have touched the USART.
+
+## EA-series
+Much less interesting... only one thing that wasn't supposed to be there was apparently left in, a section on nvmctrl which may or may not be available on production units that permitted reconfiguration of the EEPROM access internals.
+I've written about this elswhere, and will add it here later.

@@ -1,3 +1,16 @@
+/*  OBLIGATORY LEGAL BOILERPLATE
+ This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation;
+ either version 2.1 of the License, or (at your option) any later version. This library is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ See the GNU Lesser General Public License for more details. You should have received a copy of the GNU Lesser General Public License along with this library;
+ if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*//*
+   Modern AVR Comparator library for tinyAVR 0/1/2, megaAVR0, Dx, and  Ex
+   Developed in 2019 by MCUdude    https://github.com/MCUdude/
+   Ported to tinyAVR & Dx-series by Spence Konde for megaTinyCore and
+   DxCore 2021-2023: https://github.com/SpenceKonde/
+*/
+
 //*INDENT-OFF* formatting checker doesn't like how this is indented. I can't imagine why.
 #include "Comparator.h"
 #include "Arduino.h"
@@ -29,19 +42,19 @@ AltOUT |  PIN_PC6* |  PIN_PC6* |  PIN_PC6* |   n/a    | PIN_PC6* | PIN_PC6* |   
   #endif
   #if defined(AC0_AC_vect)
     #if defined(PORTE)
-      AnalogComparator  Comparator0(0, AC0, PORTD.PIN2CTRL, PORTE.PIN0CTRL, PORTE.PIN2CTRL, PORTD.PIN6CTRL,/* AVR DA/DB-series has no in_p4 */                    PORTD.PIN3CTRL, PORTDPIN0,      PORTD.PIN7CTRL);
+      AnalogComparator  Comparator0(0, AC0, PORTD.PIN2CTRL, PORTE.PIN0CTRL, PORTE.PIN2CTRL, PORTD.PIN6CTRL,                 PORTD.PIN3CTRL, PORTD.PIN0CTRL, PORTD.PIN7CTRL);
     #else
-      AnalogComparator  Comparator0(0, AC0, PORTD.PIN2CTRL, AC_NULL_REG,    AC_NULL_REG,    PORTD.PIN6CTRL,/* AVR DA/DB-series has no in_p4 */                    PORTD.PIN3CTRL, PORTDPIN0,      PORTD.PIN7CTRL);
+      AnalogComparator  Comparator0(0, AC0, PORTD.PIN2CTRL, AC_NULL_REG,    AC_NULL_REG,    PORTD.PIN6CTRL,                 PORTD.PIN3CTRL, PORTD.PIN0CTRL, PORTD.PIN7CTRL);
     #endif
   #endif
   #if defined(AC1_AC_vect)
-    AnalogComparator    Comparator1(1, AC1, PORTD.PIN2CTRL, PORTD.PIN3CTRL, PORTD.PIN4CTRL, PORTD.PIN6CTRL,/* AVR DA/DB-series has no in_p4 */                    PORTD.PIN5CTRL, PORTDPIN0,      PORTD.PIN7CTRL);
+    AnalogComparator    Comparator1(1, AC1, PORTD.PIN2CTRL, PORTD.PIN3CTRL, PORTD.PIN4CTRL, PORTD.PIN6CTRL,                 PORTD.PIN5CTRL, PORTD.PIN0CTRL, PORTD.PIN7CTRL);
   #endif
   #if defined(AC2_AC_vect)
     #if defined(PORTE)
-      AnalogComparator  Comparator2(2, AC2, PORTD.PIN2CTRL, PORTD.PIN4CTRL, PORTE.PIN1CTRL, PORTD.PIN6CTRL,/* AVR DA/DB-series has no in_p4 */                    PORTD.PIN7CTRL, PORTDPIN0,      PORTD.PIN7CTRL);
+      AnalogComparator  Comparator2(2, AC2, PORTD.PIN2CTRL, PORTD.PIN4CTRL, PORTE.PIN1CTRL, PORTD.PIN6CTRL,                 PORTD.PIN7CTRL, PORTD.PIN0CTRL, PORTD.PIN7CTRL);
     #else
-      AnalogComparator  Comparator2(2, AC2, PORTD.PIN2CTRL, PORTD.PIN4CTRL, AC_NULL_REG,    PORTD.PIN6CTRL,/* AVR DA/DB-series has no in_p4 */                    PORTD.PIN7CTRL, PORTDPIN0,      PORTD.PIN7CTRL);
+      AnalogComparator  Comparator2(2, AC2, PORTD.PIN2CTRL, PORTD.PIN4CTRL, AC_NULL_REG,    PORTD.PIN6CTRL,                 PORTD.PIN7CTRL, PORTD.PIN0CTRL, PORTD.PIN7CTRL);
     #endif
   #endif
 #elif defined(ANALOG_COMP_PINS_DD)
@@ -70,7 +83,7 @@ AltOUT |  PIN_PC6* |  PIN_PC6* |  PIN_PC6* |   n/a    | PIN_PC6* | PIN_PC6* |   
     #endif
   #endif
   #if defined(AC1_AC_vect)
-    AnalogComparator    Comparator0(1, AC1, PORTD.PIN2CTRL, PORTD.PIN3CTRL, PORTD.PIN4CTRL, PORTD.PIN6CTRL, PORTC.PIN3CTRL,/* EA-series has no MVIO */            PORTD.PIN5CTRL, PORTD.PIN0CTRL, PORTD.PIN7CTRL, PORTC.PIN2CTRL);
+    AnalogComparator    Comparator1(1, AC1, PORTD.PIN2CTRL, PORTD.PIN3CTRL, PORTD.PIN4CTRL, PORTD.PIN6CTRL, PORTC.PIN3CTRL,/* EA-series has no MVIO */            PORTD.PIN5CTRL, PORTD.PIN0CTRL, PORTD.PIN7CTRL, PORTC.PIN2CTRL);
   #endif
 #elif defined(ANALOG_COMP_PINS_MEGA)
   /* mega0:1 AC P0, P1, P2, P3, N0, N1, N2*/

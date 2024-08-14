@@ -1,20 +1,78 @@
 # Changelog
 This page documents (nearly) all bugfixes and enhancements that produce visible changes in behavior throughout the history of megaTinyCore. Note that this document is maintained by a human, who is - by nature - imperfect (this is also why there are so many bugs to fix); sometimes the changelog may not be updated at the same time as the changes go in, and occasionally a change is missed entirely in the changelog, though this is rare. Change descriptions may be incomplete or unclear; this is not meant to be an indepth reference.
+
 ## Planned changes not yet implemented
 These items are in addition to what was listed under changes already in release.
 
 * Enhancement: Fix pinout diagrams for DD-series.
-* Enhancement: Support the Ex-series. I think except for a few libraries this should be almoste completely painless!
+* Enhancement: We need pinout diagrams for EA-series too! Considering how bad I am at getting pinout diagrams, I guess I should start asking about DU-series diagrams too!
+* Enhancement: AVRdude 7.2 should be out soon. That will be used in the first release after it is available.
+* Bugfix: Make serialupdi work with EA.
+* Enhancement: Implement sleep library
+* Re-add SPI attach and detach.
+* Ensure libraries in sync with DxCore.
 
-## Changes implemented but not released
+## Planned changes implemented in github
 These are typically planned for release in a future version (usually the next one) as noted.
 
-### Planned 1.5.7
+## Releases
+
+### 1.5.11 (Emergency fix)
+* At some point in the recent past, I must have angered the gods of C, and suddenly millis disabled stopped working - the system would hang (actually, with in-depth investigation, it was shown to be bootlooping - before it called init(), it was calling 0x0000 (a dirty reset) instead of eliding a weakly defined function with nothing in the body except a return, or with an empty body. Why was it doing this? And why only when millis was disabled?). millis disabled is a key piece of core functionality, necessitating an urgent fix. Moving the definitions into main.cpp resolved this issue. (#485)
+* Critical PWM bug on DA and DB returned and made all TCA and TCD PWM fail to operate. (#473)
+* Comparator voltage reference table was incorrect, so unexpected behavior was observed when selecting most references. (#488)
+* Azduino7b1 toolchain version to fix bad power.h and eeprom.h. 7a was never released and was windows-only fix to the package files which had extra files included, 7b was the fix that also corrected the two builtin headers, but specified the crc for 7a, and could not be installed. 7b1 simply corrects that, but you can't take things out of the json file, only add them (the user-visible aspects of this issue manifest on several parts that we don't support for power.h, and eeprom.h (not EEPROM.h - that was impacted by a different bug not long ago). (#482)
+
+### 1.5.10 (Emergency fix)
+* Enhancement/bugfix - add digitalPinToCanon() - given a pin number, it returns port * 8 + bit_position. This is to be used in some other fixes and enhancements.
+* Workaround Arduino CLI regression impacting CI testing.
+* Correct bug preventing compilation of any sketches discovered as soon as the CI was working.
+* Actually use the new toolchain, which we weren't doing, and I didn't realize until the CI was working.
+
+### 1.5.9
+* Bugfix: Correct Flash.h issues.
+* Bugfix: Remove boot_opt.h which is not applicable to modern AVRs.
+* Bugfix: Remove the useless dummy app that forced us to use avr-size -A to see the size of the bootloader separated from the app, and switch avr-size -A to normal avr-size to take advantage of this.
+* Maintenance - Rebuilt all bootloaders in support of above fix.
+* Docs: Major updates across the board
+* BugFix - Correct critical defect in disabled millis.
+* Enhancement - implement `_getCurrentMillisTimer()`  and `_getCurrentMillisState()` which are/will be required for sleepTime.h
+* Bugfix - Optiboot did not honor entry conditions (#452), bump optiboot version to 0x1A02.
+* Maintenance - Rebuilt all bootloaders again.
+* Enhancement Add CORE_HAS_ERRORFUNS #define. Add CORE_HAS_MILLISSTATE #define.
+* Bugfixes, several, for SerialUPDI, and improvements in error messages.
+* Enhancement - Add the 16k and 32k EA-series parts. Still no 8k ones or headers for them either.
+* Maintenance - add CI testing for EA-series parts.
+* Bugfix: Correct compilation when analogWrite() was used on AVR EA.
+* Bugfix: Add missing API extensions on EA-series for ADC.
+* Bugfix: Fix Comparator, Event, and SPI and Wire up well enough that things at least compile on EA. And in the case of comparator, SPI, and Wire, I'm pretty sure they work too.
+* Maintenance - Correct CI testing to specify valid option for flmap menu.
+* Enhancement - (also makes the CI easier) Lay ground work for future library support for a Flash.h for Ex-series.
+* Bugfix: Optiboot boards did not honor the FLMAP option.
+* Enhancement - Update forward looking EB-series defines now that headers have escaped (here's the bad news: 4 independent channels only, half of the WO channels are inverted waveforms with dead time insertion for PSC and BLDC drive applications - and TCF at most gets you 2 8-bit channels through a TCB-like method - it's meant for generating square waves or periodic pulses. The quality of the 4 good PWM channels we get may be unmatched (we'll need to see the docs - but it looks like 19-bit PWM resolution may be in the cards with HIRES. That will have to wait until we have datasheets though.
+* Bugfix - in several cases it was possible to, using third party IDEs, pass incompatible options to the core. This now produces a more helpful error message. (#477)
+
+### 1.5.8
 * Bugfix - Change clockCyclesToMicroseconds, microsecondsToClockCycles, and clockCyclesPerMicrosecond back into macros instead of inlinable functions, as some libraries depend on them being valid constexprs.
 * Bugfix - pinModeFast will now turn off pullups if they're on when a pin is set to output. otherwise, the result was problemaic for - for example, a situation I ran into where the pullup was never turned off even after the pins were set back to output and driven low. Prior to going to deep sleep. You can imagine what my battery life was like.
+* Bugfix (serious) - ensure that compilation will succeed on Optiboot DD-series devices.
+* Bugfix - Remove the Optimization Level menu - it caused too many problems that I didn't know how to solve (nothing with serial would compile if not set for -Os - in order to gain large improvements in performance and reduction in flash usage, some of the methods used are not entirely above board.
+* Bugfix - tinyNeoPixel timing issues at 20-32 MHz should be corrected now #421
+* Bugfix - Add updateLatch(uint8_t) method. This takes an argument (in microseconds) that sets the blackout period after show() is called, since in the wild parts with between 6 and 250 us of latch delay exist, and parts that match the previous implementation may be outnumbered by ones which do not).
+* Bugfix - Fix issue when serial buffer is set to the maximum. #428
+* Large number of documentation clarifications.
+* Bugfix - Realized that the PROGMEM_MAPPED directive was dangerous because we defined it even if the FLMAP was not locked. Added a new menu to allow user to either lose PROGMEM_MAPPED, or pick a flash section to map and let us set and lock FLMAP during init, and get PROGMEM_MAPPED pointing where it should.
+* **BETA BETA BETA** Add EA-series non-optiboot boards to the board selection menu. The update where we will expect them to be 100% (well, whatever % working you happen to expect from DxCore) will be numbered 1.6.0, but by pushing an update that lets you attempt unsuccessfully to use the new parts, we can expedite development.
+* **RESEARCH** Added the reserved values for BOD level. Get out there, try them and see what voltage they set the BOD to, if any. If any turn out to be useful, they'll stay in, otherwise, out they go.
+* Documentation - Errata: all evidence I have been able to gather indicates a novel silicon bug on the AVR DD-series parts with TWI mux option to. It seems to drive the SDA line low to generate the start condition. but that's as far as it gets. The clock never changes. This is a rather serious issue, as it means that the MVIO pins aren't available for TWI. This behavior is not observed consistently and I cannot reconcile that with the nature of reality.
+* Bugfix - Correct bootloaders for 32k DA, DB, DD parts, which had been incorrectly reporting the signature of the chip.
+* Bugfix - Flash.h wasn't recognizing recent version of the bootloader.
+* Bugfix - Remove the stupid dummy app from the optiboot source (it was totally unnecessary)
+* Azduino7 Toolchain package.
 
+### 1.5.7 - release botched
+Github does not allow a release to have the same version as a previous one, even if you noticed your error within seconds and deleted it. Not all the fixes had been committed
 
-## Changes implemented but not yet in a released version
 ### 1.5.6
 * **Critical Bugfix** - analogWrite was totally hosed on all parts and would rarely output values. A number of distinct bugs were involved here.
 * **Critical Bugfix** - TCA PWM worked on some 32-pin parts but not others, and there appears to be a difference between the behavior of TCA0 on DB and DD devices - DD TCA0 overrides the PORT. DB TCAs do not. The datsheets say it should not override port direction, but the behavior has been moving away from that instead of towards that.
@@ -35,7 +93,7 @@ Spelling, grammar and typographical fixes.
 * Bugfix: pinConfigure would under some circumstances fail because of a misspelled variable.
 * Bugfix: Correct an issue with bootloading a specific DD-based board definition.
 * Enhancement: Add the the Optimization Level menu that megaTinycore got.
-* Enhancement: Improve Wire.h compatibility with other cores that have falled behind.
+* Enhancement: Improve Wire.h compatibility with other cores that have fallen behind.
 * Enhancement: Add option for 48 MHz crystal options. Because it turns out that a DB with E-spec temp rating often runs at that speed.
 * Bugfix: Correct issue with compiling for 32-pin DD-series for Optiboot. Correct several board.txt issues where the correct properties were assigned to the wrong boards.
 
@@ -100,7 +158,7 @@ Spelling, grammar and typographical fixes.
   * Bugfix: Correct issue with serial on alt pins in Optiboot that *never* should have worked.
   * Bugfix: Account for the fact that there is no acceptable LED pin on a 14-pin DD that is viable for all serial port and mux options. We pick PD6, unless using USART1, in which case we assume the LED is on PD4.
 * **Related to errors that may occur at hidden locations when using LTO (".text+0")**
-  * Enhancement: Add Ref_LTO to explain what LTO is, and how to disable it when you receive an error pointing .text+0 (often specifying a function that isn't even defined in the file it mentioned) so that you can get the actual location of the error. This is a pain in the ass to do, and usually you can figure it out without doing this, but uh, well sometimes you can't. That was the case for me in reference to a specific bug. This behavior is typically encountered when the function was inlined, causeing it to not know exactly where it came from and hence report .text+0 as the location) which led to me writing this up and providing a mechanism by which the core can be made to compile (we still disable uploading if LTO is disabled - that is because LTO is required for the core to produce working code in some cases - we depend on the ability to inline certain things across files (among other things, fast digital I/O is fully dependent on that).
+  * Enhancement: Add Ref_LTO to explain what LTO is, and how to disable it when you receive an error pointing .text+0 (often specifying a function that isn't even defined in the file it mentioned) so that you can get the actual location of the error. This is a pain in the ass to do, and usually you can figure it out without doing this, but uh, well sometimes you can't. That was the case for me in reference to a specific bug. This behavior is typically encountered when the function was inlined, causing it to not know exactly where it came from and hence report .text+0 as the location which led to me writing this up and providing a mechanism by which the core can be made to compile. We still disable uploading if LTO is disabled - that is because LTO is required for the core to produce working code in some cases - we depend on the ability to inline certain things across files (among other things, fast digital I/O is fully dependent on that).
   * Enhancement: Add clean copies of platform.txt and platform.txt without LTO/uploading, for both manual and board manager installations to extras.
 * **Other**
   * Enhancement: Add more part information macros (See [the define list](megaavr/extras/Ref_Defines.md))
@@ -204,7 +262,7 @@ Spelling, grammar and typographical fixes.
 * Enhancement: Optboot serial port menu option for the DD-series parts is now ready to be enabled.
 * Enhancement or bugfix, depending on perspective: init_reset_flags() will automatically clear reset flags if not overridden, stashing them in GPIOR0 (chosen because has lower overhead than a variable)
 * Enhancement: Add 27 MHz external clock/crystal... Math is amazingly simple, one of the cleanest so far!
-* Bugfix: Block attempts to use "upload using programmer" when an optiboot board is selected. That confiuration is guaranteed not to work, and we should not do things that we know 100% will not work. We would need a merged output file for this, but the IDE doesn't make those for us here. The only place it DOES make them is... on ATTinyCore, where they're not usable and we must go out of our way to delete the damned things)
+* Bugfix: Block attempts to use "upload using programmer" when an optiboot board is selected. That configuration is guaranteed not to work, and we should not do things that we know 100% will not work. We would need a merged output file for this, but the IDE doesn't make those for us here. The only place it DOES make them is... on ATTinyCore, where they're not usable and we must go out of our way to delete the damned things)
 * Documentation: Include recent version of the io headers for practical reference, and the original versions for historical reference (mostly so you can view them in your web browser).
 * Bugfix: Somewhere along the line I realized `MAPPED_PROGMEM` isn't a good name because the symbol is used by the headers too, and switched to PROGMEM_MAPPED. Docs and even some libraries were never updated and were silently not using this...
 * Documentation: Updated pinout diagrams and part specific docs (LOOOONGGGGG overdue).
@@ -260,7 +318,7 @@ Spelling, grammar and typographical fixes.
   * Fix bug in variants files regarding PA0, PA1 on all parts - the PORT needs to be defined accurately, but when they're not available, mask and position are NOT_A_PIN so accessing them when we know we can't will give compile error. Improve formatting.
   * Add `PIN_NOW` macros, eg, `SCL1_NOW`.
   * Fix bug where missing pin related macro on 28 pin parts related to TWI1 would cause compile errors (may not be in any release)
-  * Fix bug whrre under some conditions, errors would be encoutnered for 32-pin parts due to pinmappings missing for USART2 (not in any release)
+  * Fix bug whrre under some conditions, errors would be encountered for 32-pin parts due to pinmappings missing for USART2 (not in any release)
   * Various pins_arduino formatting improvements echoing what I did to boards.txt
   * Correct issue with name of portToPinZero() a macro used by the DxCore library to assist in managing TCA multiplexing.
   * Split DxCore.h into DxCore.h and DxCore.cpp, because otherwise you couldn't include it from more than one file without duplicate definitions.

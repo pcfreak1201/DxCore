@@ -16,10 +16,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       # See: https://github.com/arduino/arduino-lint-action#readme
       - name: Arduino Lint
         uses: arduino/arduino-lint-action@v1
         with:
           path: megaavr
+          token: ${{ secrets.GITHUB_TOKEN }}

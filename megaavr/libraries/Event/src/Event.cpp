@@ -197,12 +197,12 @@ Event& Event::get_generator_channel(uint8_t generator_pin)
   uint8_t gen = 0xFF;
   if (port != NOT_A_PIN && port_pin != NOT_A_PIN) {
     #if defined(PORTA_EVGENCTRL)
-      volatile port_t* port_ptr = portToPortStruct(port);
-      uint8_t temp = port_ptr.EVGENCTRL;
-        if ((temp & 0x0F == port_pin) {
+      volatile PORT_t* port_ptr = portToPortStruct(port);
+      uint8_t temp = port_ptr->EVGENCTRL;
+        if ((temp & 0x0F) == port_pin) {
           gen = 0x40 + (port << 1);
           _SWAP(port_pin);
-        } else if ((temp & 0xF0 == port_pin)) {
+        } else if ((temp & 0xF0) == port_pin) {
           gen = 0x40 + (port << 1) + 1;
         }
         if (gen == 0xFF)
@@ -1109,7 +1109,7 @@ static void _long_soft_event(uint8_t channel, uint8_t length) {
     "st Z, %0"        "\n\t"
     "st Z, %0"        "\n\t"
     "out 0x3f, r0"    "\n"   // restore SREG, reenabling interrupts.
-    ::"r"((uint8_t) channel),"d"((uint8_t) length),"z" ((uint16_t) strobeaddr));
+    :"+r"((uint8_t) channel):"d"((uint8_t) length),"z" ((uint16_t) strobeaddr));
 }
 
 
@@ -1124,7 +1124,7 @@ event::gen::generator_t Event::gen_from_peripheral(TCB_t& timer, uint8_t event_t
   #if defined(TINY_0_OR_1_SERIES)
     badCall("gen_from_peripheral() does not support channel-specific generators. The TCBs on 0/1-series are.");
   #else
-    #if !(defined(DXCORE) || defined(TINY_2_SERIES))  // Dx-series and 2-series have ovf event. Others dont.
+    #if !(defined(DXCORE) || defined(TINY_2_SERIES))  // Dx-series and 2-series have ovf event. Others don't.
       if (event_type != 1) {
         return (event::gen::generator_t) -1;
       } else {
